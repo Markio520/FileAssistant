@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FileAssistant.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "FileAssistant.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <!-- Packaging modes generate different resource indexes and must not share intermediates. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'FileAssistant.App'">
+    <BaseOutputPath>bin/packaged/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/packaged/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'FileAssistant.App' and '$(WindowsPackageType)' == 'None'">
+    <BaseOutputPath>bin/unpackaged/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/unpackaged/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>
