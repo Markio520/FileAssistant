@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T17:12:37+08:00",
+  "title": "Design System: FileAssistant（暂用名）",
+  "extensions": {
+    "colorMeta": {
+      "workspace-accent-light": {
+        "role": "primary",
+        "displayName": "浅色主题的深青强调"
+      },
+      "workspace-accent-dark": {
+        "role": "primary",
+        "displayName": "深色主题的浅青强调"
+      },
+      "workspace-surface-light": {
+        "role": "neutral",
+        "displayName": "浅色工作面"
+      },
+      "workspace-surface-dark": {
+        "role": "neutral",
+        "displayName": "深色工作面"
+      },
+      "system-accent": {
+        "role": "primary",
+        "displayName": "App.xaml 的实际七级强调色阶",
+        "tonalRamp": [
+          "#003F44",
+          "#005A60",
+          "#006C70",
+          "#007D82",
+          "#5CB8BF",
+          "#83D5D7",
+          "#C4ECEE"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "工作区标题",
+        "purpose": "原生 TextBlock；继承 XamlAutoFontFamily，尺寸使用 DIP。"
+      },
+      "detail-title": {
+        "displayName": "文件名称",
+        "purpose": "检查器中的半粗名称，可换行并选择文本。"
+      },
+      "caption": {
+        "displayName": "辅助信息",
+        "purpose": "路径、列标题、元数据、计数和示例说明。"
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "workspace-wide",
+        "value": "1140 DIP"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "原生强调按钮",
+      "kind": "button",
+      "refersTo": "button-primary-light",
+      "description": "WinUI AccentButtonStyle；深色对应 button-primary-dark。正常填充以外的状态由 Fluent 模板处理。载入示例可用，开始复制禁用。"
+    },
+    {
+      "name": "原生普通按钮与菜单",
+      "kind": "button",
+      "description": "Button、DropDownButton 和 MenuFlyout 使用 Fluent 默认外观；主题与界面示例入口不提供持久化设置。"
+    },
+    {
+      "name": "当前列表搜索",
+      "kind": "input",
+      "description": "原生 AutoSuggestBox，与类型 ComboBox 协作过滤内存中的名称和路径。无文件或加载时禁用；更改筛选清除选择。"
+    },
+    {
+      "name": "工作区导航",
+      "kind": "nav",
+      "description": "原生 NavigationView；在 workspace-wide 切换点展开或收为图标栏。复制整理切换检查器页签，任务队列入口切换底部展开。"
+    },
+    {
+      "name": "示例文件标签",
+      "kind": "chip",
+      "refersTo": "sample-badge-light",
+      "description": "原生 Border 与 TextBlock 组成的信息标签，不是可点击筛选芯片。深色对应 sample-badge-dark；有文件时明确标识示例性质。"
+    },
+    {
+      "name": "文件工作面",
+      "kind": "card",
+      "refersTo": "work-surface-light",
+      "description": "原生 Border 容纳列表与检查器，以细边框和不同背景区分区域。深色对应 work-surface-dark；未提供拖拽调宽。"
+    },
+    {
+      "name": "文件列表行",
+      "kind": "custom",
+      "refersTo": "file-row",
+      "description": "原生 ListViewItem；Extended 多选、复选框、路径工具提示与主题配对的选中填充。Ctrl+A、Delete 的 ScopeOwner 为 FileList；Delete 仅移出内存列表。"
+    },
+    {
+      "name": "文件检查器",
+      "kind": "custom",
+      "refersTo": "preview-marker-light",
+      "description": "原生 Pivot 的预览与操作参数页。深色标记对应 preview-marker-dark。预览显示字体图标和示例元数据；实际内容预览及复制执行未接入。"
+    },
+    {
+      "name": "任务面板",
+      "kind": "custom",
+      "refersTo": "task-panel-light",
+      "description": "原生 Border、ToggleButton 与 ProgressBar。深色对应 task-panel-dark。展开后显示空队列或固定进度示例，关闭示例回到空队列。"
+    }
+  ],
+  "narrative": {
+    "northStar": "清晰的文件工作台",
+    "overview": "当前界面以文件列表为主要工作面，用冷灰背景、分层工作面与青色强调建立层级。原生 Fluent 控件承担输入、选择、菜单和反馈；选中行与右侧文件标记使用同一组强调资源，帮助用户核对当前对象。\n\n本记录于 2026-10-29 从现有 XAML/C# 提取。上述名称与描述概括本次实现，不代表用户已确认永久品牌；正式产品名称仍未确定。产品边界见 [PRODUCT.md](PRODUCT.md)，当前页面的布局与验收记录见 [主工作区设计](docs/workspace-design.md)。这里的尺寸单位是 Windows DIP，字体资源名称是 WinUI 标识，不能按 CSS 字体或物理像素解释。",
+    "keyCharacteristics": [
+      "原生 Fluent 控件与系统中文字体。",
+      "冷灰工作面、青色强调和细分隔线。",
+      "文件名称与路径优先，选中状态联动详情。"
+    ],
+    "rules": [],
+    "dos": [
+      "Do 使用成对的浅深色 ThemeResource，并保留高对比度资源映射。",
+      "Do 保留原生控件的键盘、焦点、禁用和工具提示行为。",
+      "Do 让长名称可追溯到完整路径，让示例和真实操作结果有明确文字区别。"
+    ],
+    "donts": [
+      "Don't 将 DIP 当作物理像素，或把 XamlAutoFontFamily 替换成臆定的网页字体栈。",
+      "Don't 将禁用的真实文件操作、类型图标预览或固定进度示例描述为已完成的业务能力。",
+      "Don't 把本次青色方案、暂用名或四区布局写成用户已确认的永久品牌要求。"
+    ]
+  }
+}

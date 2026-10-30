@@ -2,7 +2,7 @@
 
 > 整理日期：2026-10-29  
 > 状态：基于 C# / .NET 10 / WinUI 3 的工程架构约定。  
-> 已通过官方模板生成解决方案及三个源码项目，并完成基础构建与非打包启动验证；业务功能尚未实现。  
+> 已建立三个源码项目，并完成主工作区基础界面、构建与非打包启动验证；真实文件读写与操作业务尚未实现。
 > FileAssistant 是示例代码前缀，不代表产品名称已经确定。
 
 ## 1. 架构选择
@@ -19,7 +19,7 @@ Core 内部通过文件夹区分规则与流程，初期不再拆分独立 Domai
 
 ## 2. 仓库目录
 
-下面展示完整的代码摆放约定。解决方案、三个源码项目及基础配置已生成；空目录使用 `.gitkeep` 保留，测试项目和业务源码按功能逐步添加。当前可运行的模板页面位于 `Features/Workspace/`，落地状态见 [README](../README.md)。
+下面展示完整的代码摆放约定。解决方案、三个源码项目及基础配置已生成；空目录使用 `.gitkeep` 保留，测试项目和业务源码按功能逐步添加。当前可运行的主工作区位于 `Features/Workspace/`，落地状态见 [README](../README.md)。
 
 ```text
 FileAssistant/
@@ -98,6 +98,12 @@ FileAssistant/
 ```
 
 ### 目录职责补充
+
+- 单选下拉的公共行为放在 `App/Controls/SelectionDropDown.cs`，选项类型 `SelectionOption` 不依赖 WinUI。搜索与工作区各自维护 `SearchFilterOptions`、`WorkspaceSelectionOptions`，页面只绑定稳定的选项值，不用菜单顺序或字符串 Tag 推断业务值。
+- 两个页面的外观入口统一使用 `Controls/ThemeSelectionDropDown`，继承公共选择框的弹层与选中样式，保留图标按钮。控件订阅应用根节点的 `RequestedTheme` 并在卸载时取消订阅，确保两处选中状态同步；主题切换不再由页面菜单事件分别处理。
+- 所有选择框复用 `Resources/SelectionControls.xaml` 的按钮、弹层、选中行和间距。`ThemePalette.xaml` 集中维护配色，`WorkspaceTheme.xaml` 将颜色映射为语义画刷；控件通过 `ThemeResource` 消费，不保存颜色副本。保留 Fluent 的文字、交互状态与高对比度资源。
+- `SelectionDropDown` 用原生 DropDownButton、Flyout、ListView 与 ListViewItemPresenter 组合：按钮文本固定、菜单下方居中，单选竖条、键盘导航和焦点由公共控件管理。方向键浏览，回车/空格或点击确认，Esc/点击外部不提交；外部清空条件时按钮和下次打开的选中项同步。
+- 含编译绑定的 `SelectionControls` 资源字典必须在 `App.xaml` 中通过 `<resources:SelectionControls />` 实例化，不能改成仅设置文件 `Source`，否则模板文字的绑定初始化不会运行。参见 [Microsoft：资源字典中的 x:Bind](https://learn.microsoft.com/en-us/windows/uwp/data-binding/data-binding-in-depth#resource-dictionaries-with-xbind)。
 
 - `src` 只放源码和构建所需资源；测试程序放 `tests`。
 - 已有产品方案保留在根目录，后续架构和专项说明放 `docs`，避免复制多份同一规范。
@@ -214,9 +220,20 @@ NuGet 支持通过 `Directory.Packages.props` 集中管理版本；MSBuild 支�
 
 ## 8. 初期落地方式
 
-目前已使用官方模板建立真实可构建的三个源码项目、解决方案及统一配置，并验证模板窗口和 MVVM 命令绑定。模板示例页面与 ViewModel 已移入 `Features/Workspace`，类库中的空 `Class1` 已移除。测试目录暂时预留，不把空断言当成验证结果。
+目前已建立真实可构建的三个源码项目、解决方案及统一配置。主工作区位于 `Features/Workspace`，已替换计数器模板；`WorkspacePage` 负责布局与输入适配，`WorkspaceViewModel` 负责列表与展示状态，`FileInspector` 和 `WorkspaceTaskPanel` 分别承载详情/参数和队列。共享主题位于 `Resources/WorkspaceTheme.xaml`。
 
-下一步围绕文件列表、预览和第一条复制流程添加实际代码与对应测试。目录占位不表示功能已经完成；源码与接口随实现添加，不一次性生成所有功能的空页面、空服务和空测试。
+`WorkspaceFile` 是 App 展示模型，可引用真实的 Core `SearchFile`；`WorkspaceSamples` 仅用于界面示例。加入真实文件会清除示例，批次与当前筛选结果分别维护。旧的临时状态检查位于忽略的 `artifacts/workspace-state-check`。
+
+搜索第一阶段按如下职责落地：
+
+- Core `Features/Search` 保存范围、条件、结果模型和共用语法规则；`Abstractions/IFileSearch` 是搜索边界。
+- Infrastructure `FileSystem` 保存目录快照扫描和搜索分派；`Windows/EverythingSearchClient` 使用官方 QUERY2W IPC，后台线程建立独立消息窗口并处理超时、取消和有界结果解析。
+- `Windows/EverythingRuntime` 管理随包引擎的配置、预热、共享准备任务、恢复与关闭；`EverythingDistribution` 固定版本和校验值；`EverythingServiceSetup` 把专用辅助服务安装到受保护目录。App 启动与关闭只负责组装和转交生命周期，短暂提权调用在创建窗口前完成服务准备，不提升日常文件操作界面。
+- App `Features/Search` 保存 WinUI 视图、显示模型及输入防抖/过期结果保护。文件夹选择器由视图持有窗口句柄，文件访问均经接口。具体搜索服务只在 `App.OnLaunched` 组装。
+- 搜索表格的共享列宽保存在 App `SearchColumnWidths`，行模型与表头使用同一实例；Thumb 手势和上下文菜单定位属于视图行为。Core `IFileInteraction` 隔离打开、定位与复制文本，Infrastructure `WindowsFileInteraction` 调用 Windows Shell 和剪贴板，ViewModel 组织反馈并可独立测试。
+- Core.Tests 验证共用语法和分页；Infrastructure.Tests 验证真实临时目录和可选 Everything 实例；App.Tests 链接不依赖 WinUI 的状态模型，验证输入竞态、取消、输入法组合和批次独立性。原生控件另用 WinApp UI Automation 检查，不把这些状态测试称为完整 UI 自动化测试。
+
+下一步围绕内容预览和第一条复制流程添加实际代码与对应测试。目录占位不表示功能已经完成；源码与接口随实现添加，不一次性生成所有功能的空页面、空服务和空测试。
 
 完整功能范围见[产品与技术方案](../文件操作助手-产品与技术方案.md)，用户要求和最新纠正见[项目约定](../AGENTS.md)。
 

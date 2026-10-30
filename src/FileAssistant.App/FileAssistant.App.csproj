@@ -72,6 +72,17 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
+    <EverythingCache>$(MSBuildProjectDirectory)\..\..\artifacts\dependencies\everything\1.4.1.1032\x64</EverythingCache>
+  </PropertyGroup>
+  <Target Name="RestoreBundledSearchEngine" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\restore-search-engine.ps1&quot; -Architecture $(Platform)" />
+  </Target>
+  <ItemGroup>
+    <Content Include="$(EverythingCache)\Everything.exe" Link="SearchEngine\Everything.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(EverythingCache)\Everything.lng" Link="SearchEngine\Everything.lng" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(EverythingCache)\License.txt" Link="SearchEngine\License.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>

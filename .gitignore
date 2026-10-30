@@ -14,6 +14,7 @@
 *.trx
 /coverage/
 /artifacts/
+/.impeccable/review/
 AppPackages/
 BundleArtifacts/
 *.binlog

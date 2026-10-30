@@ -17,4 +17,9 @@
       <Platform Project="Any CPU" />
     </Project>
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FileAssistant.Core.Tests/FileAssistant.Core.Tests.csproj"><Platform Project="Any CPU" /></Project>
+    <Project Path="tests/FileAssistant.Infrastructure.Tests/FileAssistant.Infrastructure.Tests.csproj"><Platform Project="Any CPU" /></Project>
+    <Project Path="tests/FileAssistant.App.Tests/FileAssistant.App.Tests.csproj"><Platform Project="Any CPU" /></Project>
+  </Folder>
 </Solution>

@@ -1,0 +1,2 @@
+# Preserve the exact upstream license bytes checked before elevated installation.
+third-party/licenses/Everything-1.4.1.1032.txt -text

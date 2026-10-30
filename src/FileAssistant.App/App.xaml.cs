@@ -15,6 +15,12 @@ namespace FileAssistant.App;
 /// </summary>
 public partial class App : Application
 {
+    private Infrastructure.Windows.EverythingRuntime? indexRuntime;
+    private Mutex? instanceMutex;
+    private bool closing;
+    private bool closed;
+    public static Features.Workspace.WorkspaceViewModel Workspace { get; private set; } = null!;
+    public static Features.Search.SearchViewModel Search { get; private set; } = null!;
     /// <summary>
     /// The main application window. Use <c>App.Window</c> from any class that needs
     /// the window reference (for dialogs, pickers, interop, etc.).
@@ -41,6 +47,9 @@ public partial class App : Application
     /// </summary>
     public App()
     {
+        var arguments = Environment.GetCommandLineArgs();
+        if (arguments.Length == 3 && arguments[1] == Infrastructure.Windows.EverythingDistribution.SetupArgument)
+            Environment.Exit(Infrastructure.Windows.EverythingServiceSetup.Install(arguments[2]));
         InitializeComponent();
     }
 
@@ -50,8 +59,55 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        var instance = Infrastructure.Windows.EverythingDistribution.UserInstance;
+        instanceMutex = new Mutex(false, @"Local\" + instance + ".App");
+        bool ownsInstance;
+        try { ownsInstance = instanceMutex.WaitOne(0); }
+        catch (AbandonedMutexException) { ownsInstance = true; }
+        if (!ownsInstance)
+        {
+            foreach (var running in System.Diagnostics.Process.GetProcessesByName("FileAssistant.App"))
+            {
+                using (running)
+                    if (running.Id != Environment.ProcessId && running.MainWindowHandle != 0)
+                    {
+                        ShowWindow(running.MainWindowHandle, 9);
+                        SetForegroundWindow(running.MainWindowHandle);
+                        break;
+                    }
+            }
+            Exit();
+            return;
+        }
+        Workspace = new();
+        indexRuntime = new(Infrastructure.Windows.EverythingDistribution.BundledExecutable,
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Search", "Everything-1.4"), instance);
+        var searchService = new Infrastructure.FileSystem.FileSearchService(
+            new Infrastructure.Windows.EverythingSearchClient(instance), new Infrastructure.FileSystem.DirectorySearchIndex(), indexRuntime);
+        Search = new(searchService, () => Workspace.SearchEntries, Workspace.AddSearchFiles, new Infrastructure.Windows.WindowsFileInteraction());
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Window.Activate();
+        Window.AppWindow.Closing += async (_, e) =>
+        {
+            if (closed) return;
+            e.Cancel = true;
+            if (closing) return;
+            closing = true;
+            Search.Deactivate();
+            Window.AppWindow.Hide();
+            try { await indexRuntime.DisposeAsync(); }
+            finally { closed = true; instanceMutex.ReleaseMutex(); instanceMutex.Dispose(); Window.Close(); }
+        };
+        _ = WarmIndexAsync();
     }
+
+    private async Task WarmIndexAsync()
+    {
+        try { await indexRuntime!.EnsureReadyAsync(null, CancellationToken.None); }
+        catch (Exception) { /* The search view presents the retained failure and an explicit retry. */ }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint window);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool ShowWindow(nint window, int command);
 }
