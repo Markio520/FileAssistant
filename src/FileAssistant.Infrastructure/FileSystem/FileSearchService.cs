@@ -14,7 +14,7 @@ public sealed class FileSearchService(EverythingSearchClient everything, Directo
         {
             SearchScope.Everything => SearchIndexAsync(request, progress, cancellationToken),
             SearchScope.Folder => directories.SearchAsync(request, progress, cancellationToken),
-            _ => Task.Run(() => SearchRules.Filter(batch, request, "当前操作批次", cancellationToken: cancellationToken), cancellationToken)
+            _ => Task.Run(() => SearchRules.Filter(batch, request, "文件暂存区", cancellationToken: cancellationToken), cancellationToken)
         };
     }
 

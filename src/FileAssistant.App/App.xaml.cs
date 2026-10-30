@@ -20,6 +20,7 @@ public partial class App : Application
     private bool closing;
     private bool closed;
     public static Features.Workspace.WorkspaceViewModel Workspace { get; private set; } = null!;
+    public static Features.Workspace.WorkspaceViewModel CopyInput { get; private set; } = null!;
     public static Features.Search.SearchViewModel Search { get; private set; } = null!;
     /// <summary>
     /// The main application window. Use <c>App.Window</c> from any class that needs
@@ -57,7 +58,7 @@ public partial class App : Application
     /// Invoked when the application is launched.
     /// </summary>
     /// <param name="args">Details about the launch request and process.</param>
-    protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         var instance = Infrastructure.Windows.EverythingDistribution.UserInstance;
         instanceMutex = new Mutex(false, @"Local\" + instance + ".App");
@@ -79,12 +80,16 @@ public partial class App : Application
             Exit();
             return;
         }
-        Workspace = new();
+        var inputReader = new Infrastructure.FileSystem.FileInputReader();
+        Workspace = new(inputReader);
+        CopyInput = new(inputReader, isStaging: false);
         indexRuntime = new(Infrastructure.Windows.EverythingDistribution.BundledExecutable,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Search", "Everything-1.4"), instance);
         var searchService = new Infrastructure.FileSystem.FileSearchService(
             new Infrastructure.Windows.EverythingSearchClient(instance), new Infrastructure.FileSystem.DirectorySearchIndex(), indexRuntime);
-        Search = new(searchService, () => Workspace.SearchEntries, Workspace.AddSearchFiles, new Infrastructure.Windows.WindowsFileInteraction());
+        Search = new(searchService, () => Workspace.SearchEntries, Workspace.ImportFilesAsync, new Infrastructure.Windows.WindowsFileInteraction(),
+            new Infrastructure.Persistence.JsonSettingsStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "search-settings.json")));
+        await Search.LoadPreferencesAsync();
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Window.Activate();
@@ -95,8 +100,10 @@ public partial class App : Application
             if (closing) return;
             closing = true;
             Search.Deactivate();
+            Workspace.CancelLoadingCommand.Execute(null);
+            CopyInput.CancelLoadingCommand.Execute(null);
             Window.AppWindow.Hide();
-            try { await indexRuntime.DisposeAsync(); }
+            try { await Search.FlushPreferencesAsync(); await indexRuntime.DisposeAsync(); }
             finally { closed = true; instanceMutex.ReleaseMutex(); instanceMutex.Dispose(); Window.Close(); }
         };
         _ = WarmIndexAsync();

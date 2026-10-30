@@ -22,6 +22,7 @@ public sealed record SearchRequest
     public long? MinimumSize { get; init; }
     public long? MaximumSize { get; init; }
     public DateTimeOffset? ModifiedFrom { get; init; }
+    public DateTimeOffset? ModifiedBefore { get; init; }
     public SearchSort Sort { get; init; }
     public bool Descending { get; init; }
     public int Offset { get; init; }

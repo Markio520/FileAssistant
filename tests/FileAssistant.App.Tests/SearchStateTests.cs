@@ -11,7 +11,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Late_old_result_cannot_replace_new_query()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { QueryText = "old" };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { QueryText = "old" };
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey("old"));
         vm.QueryText = "new";
@@ -24,7 +24,7 @@ public sealed class SearchStateTests
     }
     [Fact] public async Task Cancel_does_not_report_no_matches()
     {
-        var vm = new SearchViewModel(new CancellableSearch(), () => [], _ => 0) { QueryText = "搜索中" };
+        var vm = new SearchViewModel(new CancellableSearch(), () => [], TestImports.None) { QueryText = "搜索中" };
         vm.Activate();
         vm.CancelCommand.Execute(null);
         await WaitUntil(() => !vm.IsBusy);
@@ -35,7 +35,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Ime_composition_does_not_launch_intermediate_queries()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { QueryText = "first" };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { QueryText = "first" };
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey("first"));
         service.Pending["first"].SetResult(Page("first.txt"));
@@ -66,7 +66,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Untouched_search_loads_all_types_and_supports_sorting_and_refresh()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0);
+        var vm = new SearchViewModel(service, () => [], TestImports.None);
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey(""));
         Assert.Equal(SearchKind.All, service.LastRequest!.Kind);
@@ -92,7 +92,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Clearing_query_restores_all_files_and_discards_a_late_filtered_result()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { QueryText = "old" };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { QueryText = "old" };
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey("old"));
         vm.QueryText = "  ";
@@ -109,7 +109,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Resetting_a_type_filter_without_a_keyword_restores_all_files()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { KindIndex = 1 };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { KindIndex = 1 };
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey(""));
         var filtered = service.Pending[""];
@@ -140,12 +140,18 @@ public sealed class SearchStateTests
         widths.Resize("Size", -10000);
         Assert.Equal(64, widths.Size);
     }
-    [Fact] public void File_actions_use_the_menu_target_and_copy_every_selected_path()
+    [Fact] public async Task File_actions_use_the_menu_target_and_copy_every_selected_path()
     {
         var actions = new RecordingInteraction();
-        var vm = new SearchViewModel(new ControlledSearch(), () => [], _ => 0, actions);
-        var first = new SearchResultItem(new(@"D:\目录\第一个.txt", false, 1, null));
-        var target = new SearchResultItem(new(@"D:\目录\右键 文件.txt", false, 1, null));
+        var service = new ControlledSearch();
+        var vm = new SearchViewModel(service, () => [], TestImports.None, actions);
+        vm.Activate();
+        service.Pending[""].SetResult(new([
+            new(@"D:\目录\第一个.txt", false, 1, null), new(@"D:\目录\右键 文件.txt", false, 1, null)
+        ], 2, "test"));
+        await WaitUntil(() => !vm.IsBusy);
+        var first = vm.Results[0];
+        var target = vm.Results[1];
         vm.SelectedItem = first;
         vm.OpenFile(target);
         Assert.Equal(target.File, actions.Opened);
@@ -162,7 +168,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Executable_filter_reaches_the_search_service_and_reset_restores_button_labels()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { KindIndex = (int)SearchKind.Executables, SizeIndex = 3, DateIndex = 2 };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { KindIndex = (int)SearchKind.Executables, SizeIndex = 3, DateIndex = 2 };
         Assert.Equal("可执行文件", vm.KindLabel);
         Assert.Equal("至少 10 MB", vm.SizeLabel);
         Assert.Equal("最近 7 天", vm.DateLabel);
@@ -171,16 +177,21 @@ public sealed class SearchStateTests
         Assert.Equal(SearchKind.Executables, service.LastRequest!.Kind);
         service.Pending[""].SetResult(Page("app.exe"));
         await WaitUntil(() => !vm.IsBusy);
+        var filtered = service.Pending[""];
         vm.ResetFiltersCommand.Execute(null);
         Assert.Equal("所有类型", vm.KindLabel);
         Assert.Equal("不限大小", vm.SizeLabel);
         Assert.Equal("不限修改日期", vm.DateLabel);
-        Assert.Empty(vm.Results);
+        Assert.Equal("app.exe", Assert.Single(vm.Results).Name);
+        await WaitUntil(() => service.Pending[""] != filtered);
+        service.Pending[""].SetResult(Page("all.txt"));
+        await WaitUntil(() => !vm.IsBusy);
+        Assert.Equal("all.txt", Assert.Single(vm.Results).Name);
     }
     [Fact] public async Task Choosing_a_folder_searches_without_text_and_clearing_text_restores_its_contents()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { ScopeIndex = (int)SearchScope.Folder };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { ScopeIndex = (int)SearchScope.Folder };
         vm.Activate();
         Assert.Empty(service.Pending);
         Assert.Equal("指定目录", vm.ScopeLabel);
@@ -204,7 +215,7 @@ public sealed class SearchStateTests
     [Fact] public async Task Leaving_folder_scope_loads_the_global_index_and_ignores_a_late_directory_scan()
     {
         var service = new ControlledSearch();
-        var vm = new SearchViewModel(service, () => [], _ => 0) { ScopeIndex = (int)SearchScope.Folder, Folder = @"D:\样本" };
+        var vm = new SearchViewModel(service, () => [], TestImports.None) { ScopeIndex = (int)SearchScope.Folder, Folder = @"D:\样本" };
         vm.Activate();
         await WaitUntil(() => service.Pending.ContainsKey(""));
         var scan = service.Pending[""];

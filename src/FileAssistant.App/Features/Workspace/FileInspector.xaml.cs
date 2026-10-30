@@ -16,5 +16,11 @@ public sealed partial class FileInspector : UserControl
 
     public FileInspector() => InitializeComponent();
 
-    public void ShowParameters(bool show) => InspectorTabs.SelectedIndex = show ? 1 : 0;
+    public void ShowParameters(bool show)
+    {
+        // Pivot still renders a collapsed item's header; remove the unavailable tab instead.
+        if (!show) InspectorTabs.Items.Remove(ParametersTab);
+        else if (!InspectorTabs.Items.Contains(ParametersTab)) InspectorTabs.Items.Add(ParametersTab);
+        InspectorTabs.SelectedIndex = show ? 1 : 0;
+    }
 }

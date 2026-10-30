@@ -7,6 +7,10 @@
     <Using Include="Xunit" />
     <!-- ViewModels have no WinUI dependency; exercise their actual sources without a UI test host. -->
     <Compile Include="../../src/FileAssistant.App/Features/Search/SearchViewModel.cs" Link="Sources/SearchViewModel.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Search/SearchViewModel.Filters.cs" Link="Sources/SearchViewModel.Filters.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Search/SearchViewModel.Preferences.cs" Link="Sources/SearchViewModel.Preferences.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Search/SearchPreferences.cs" Link="Sources/SearchPreferences.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Search/ThrottledSearchProgress.cs" Link="Sources/ThrottledSearchProgress.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Search/SearchFilterOptions.cs" Link="Sources/SearchFilterOptions.cs" />
     <Compile Include="../../src/FileAssistant.App/Controls/SelectionOption.cs" Link="Sources/SelectionOption.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Search/SearchResultItem.cs" Link="Sources/SearchResultItem.cs" />

@@ -6,19 +6,56 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Input;
 using Windows.Storage.Pickers;
 using Windows.System;
+using FileAssistant.Core.Features.Search;
 
 namespace FileAssistant.App.Features.Search;
 
 public sealed partial class SearchView : UserControl
 {
     private bool resizingColumn;
+    private bool active;
+    private object? savedResults;
+    private double savedVerticalOffset;
+    private double savedHorizontalOffset;
     public SearchViewModel ViewModel => App.Search;
     public event EventHandler? WorkspaceRequested;
 
     public SearchView() { InitializeComponent(); }
-    public void Activate() { ViewModel.Activate(); QueryBox.Focus(FocusState.Programmatic); }
-    public void Deactivate() => ViewModel.Deactivate();
+    public void Activate()
+    {
+        active = true;
+        ViewModel.Activate();
+        QueryBox.Focus(FocusState.Programmatic);
+        // Restore after the collapsed page has been measured, only for the same result collection.
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (!active || !ReferenceEquals(savedResults, ViewModel.Results)) return;
+            ResultsList.UpdateLayout();
+            FindScrollViewer(ResultsList)?.ChangeView(null, savedVerticalOffset, null, true);
+            ResultsViewport.ChangeView(savedHorizontalOffset, null, null, true);
+        });
+    }
+    public void Deactivate()
+    {
+        if (!active) return;
+        active = false;
+        savedResults = ViewModel.Results;
+        savedVerticalOffset = FindScrollViewer(ResultsList)?.VerticalOffset ?? 0;
+        savedHorizontalOffset = ResultsViewport.HorizontalOffset;
+        ViewModel.Deactivate();
+    }
     public void FocusQuery() => QueryBox.Focus(FocusState.Programmatic);
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is ScrollViewer viewer) return viewer;
+            if (FindScrollViewer(child) is { } nested) return nested;
+        }
+        return null;
+    }
 
     private async void Browse_Click(object sender, RoutedEventArgs e)
     {
@@ -37,7 +74,7 @@ public sealed partial class SearchView : UserControl
         ViewModel.SelectionCount = ResultsList.SelectedItems.Count;
         ViewModel.SelectedItem = e.AddedItems.OfType<SearchResultItem>().LastOrDefault() ?? ResultsList.SelectedItems.OfType<SearchResultItem>().FirstOrDefault();
     }
-    private void Add_Click(object sender, RoutedEventArgs e) => ViewModel.AddSelection(ResultsList.SelectedItems.OfType<SearchResultItem>().ToArray());
+    private async void Add_Click(object sender, RoutedEventArgs e) => await ViewModel.AddSelectionAsync(ResultsList.SelectedItems.OfType<SearchResultItem>().ToArray());
     private void Workspace_Click(object sender, RoutedEventArgs e) => WorkspaceRequested?.Invoke(this, EventArgs.Empty);
     private void FolderScope_Click(object sender, RoutedEventArgs e) { ViewModel.ScopeIndex = 1; FolderBox.Focus(FocusState.Programmatic); }
     private void ResultsHeader_SizeChanged(object sender, SizeChangedEventArgs e) => ResultsHeaderRow.Height = new GridLength(e.NewSize.Height);
@@ -67,6 +104,7 @@ public sealed partial class SearchView : UserControl
 
     private void Results_ContextRequested(UIElement sender, ContextRequestedEventArgs e)
     {
+        if (!ViewModel.CanUseResults) return;
         var pointer = e.TryGetPosition(ResultsList, out var position);
         var container = ResultContainer(pointer ? e.OriginalSource : FocusManager.GetFocusedElement(XamlRoot));
         var target = container?.Content as SearchResultItem ?? (pointer ? null : ViewModel.SelectedItem);
@@ -90,7 +128,7 @@ public sealed partial class SearchView : UserControl
         menu.Items.Add(Item("复制完整路径", "\uE8C8", () => ViewModel.CopySelection(selection, false)));
         menu.Items.Add(Item("复制文件名", "\uE8A5", () => ViewModel.CopySelection(selection, true)));
         menu.Items.Add(new MenuFlyoutSeparator());
-        menu.Items.Add(Item("加入操作批次", "\uE710", () => ViewModel.AddSelection(selection), ViewModel.CanAdd));
+        menu.Items.Add(Item("加入暂存区", "\uE710", async () => await ViewModel.AddSelectionAsync(selection), ViewModel.CanAdd));
         if (pointer) menu.ShowAt(ResultsList, new FlyoutShowOptions { Position = position });
         else menu.ShowAt(container ?? (FrameworkElement)ResultsList);
         e.Handled = true;
@@ -107,12 +145,14 @@ public sealed partial class SearchView : UserControl
         if (ResultsList.SelectedItems.Count == 1 && ViewModel.SelectedItem is { } item) ViewModel.OpenFile(item);
         e.Handled = true;
     }
-    private void Details_Changed(object sender, RoutedEventArgs e)
+    private void SortHeader_Click(object sender, RoutedEventArgs e) => ViewModel.SortBy((SearchSort)int.Parse((string)((Button)sender).Tag));
+    private void ClearDate_Click(object sender, RoutedEventArgs e)
     {
-        if (DetailsPanel is not null) DetailsPanel.Visibility = DetailsToggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if ((string)((Button)sender).Tag == "From") ViewModel.CustomDateFrom = null;
+        else ViewModel.CustomDateThrough = null;
     }
     private void SelectAll_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { ResultsList.SelectAll(); args.Handled = true; }
-    private void Refresh_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { ViewModel.RefreshCommand.Execute(null); args.Handled = true; }
+    private void Refresh_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { if (ViewModel.RefreshCommand.CanExecute(null)) ViewModel.RefreshCommand.Execute(null); args.Handled = true; }
     private void Query_CompositionStarted(TextBox sender, TextCompositionStartedEventArgs args) => ViewModel.SetInputComposition(true);
     private void Query_CompositionEnded(TextBox sender, TextCompositionEndedEventArgs args) => ViewModel.SetInputComposition(false);
 }

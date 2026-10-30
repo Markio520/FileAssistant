@@ -42,6 +42,27 @@ public sealed class EverythingIntegrationTests
         Assert.Equal(local.Items.Select(f => f.FullPath).Order(), indexed.Items.Select(f => f.FullPath).Order());
     }
     [Fact, Trait("Category", "Everything")]
+    public async Task Custom_size_and_inclusive_date_ranges_match_local_filtering()
+    {
+        var all = await client.SearchAsync(new() { PageSize = 1000 }, default);
+        Assert.True(all.Total >= 300);
+        var today = new DateTimeOffset(DateTime.Today);
+        var requests = new SearchRequest[]
+        {
+            new() { MinimumSize = 1000, MaximumSize = 3000, PageSize = 1000 },
+            new() { ModifiedFrom = today, ModifiedBefore = new DateTimeOffset(DateTime.Today.AddDays(1)), PageSize = 1000 },
+            new() { ModifiedBefore = today, PageSize = 1000 },
+            new() { MinimumSize = 1000, ModifiedBefore = new DateTimeOffset(DateTime.Today.AddDays(1)), PageSize = 1000 }
+        };
+        foreach (var request in requests)
+        {
+            var indexed = await client.SearchAsync(request, default);
+            var local = SearchRules.Filter(all.Items, request, "test");
+            Assert.Equal(local.Items.Select(f => f.FullPath).Order(), indexed.Items.Select(f => f.FullPath).Order());
+        }
+    }
+
+    [Fact, Trait("Category", "Everything")]
     public async Task Engine_sort_is_global_before_page_limit()
     {
         var all = await client.SearchAsync(new() { Kind = SearchKind.Files, PageSize = 1000 }, default);

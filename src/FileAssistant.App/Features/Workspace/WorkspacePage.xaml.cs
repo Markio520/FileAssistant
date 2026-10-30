@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using FileAssistant.App.Features.FileInput;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -9,6 +9,7 @@ namespace FileAssistant.App.Features.Workspace;
 public sealed partial class WorkspacePage : Page
 {
     public WorkspaceViewModel ViewModel => App.Workspace;
+    public WorkspaceViewModel CopyViewModel => App.CopyInput;
 
     public WorkspacePage()
     {
@@ -17,70 +18,41 @@ public sealed partial class WorkspacePage : Page
         KeyboardAccelerators[^1].Invoked += (_, args) =>
         {
             if (SearchPanel.Visibility == Visibility.Visible) SearchPanel.FocusQuery();
-            else SearchBox.Focus(FocusState.Programmatic);
+            else if (CopyPanel.Visibility == Visibility.Visible) CopyPanel.FocusQuery();
+            else StagingPanel.FocusQuery();
             args.Handled = true;
         };
     }
 
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
-        {
-            ViewModel.SearchText = sender.Text;
-        }
-    }
-
-    private void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ViewModel.SelectionCount = FileList.SelectedItems.Count;
-        ViewModel.SelectedFile = e.AddedItems.OfType<WorkspaceFile>().LastOrDefault()
-            ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault();
-    }
-
-    private void Remove_Click(object sender, RoutedEventArgs e) => RemoveSelection();
-
-    private void Remove_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        RemoveSelection();
-        args.Handled = true;
-    }
-
-    private void SelectAll_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        FileList.SelectAll();
-        args.Handled = true;
-    }
-
-    private void RemoveSelection() => ViewModel.RemoveFromList(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray());
-
     private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (Inspector is not null && args.SelectedItem is NavigationViewItem item)
+        if (StagingPanel is not null && args.SelectedItem is NavigationViewItem item)
         {
             var searching = item.Tag is "search";
-            WorkspaceLayout.Visibility = searching ? Visibility.Collapsed : Visibility.Visible;
+            var copying = item.Tag is "organize";
+            if (!searching) SearchPanel.Deactivate();
+            StagingPanel.Visibility = searching || copying ? Visibility.Collapsed : Visibility.Visible;
+            CopyPanel.Visibility = copying ? Visibility.Visible : Visibility.Collapsed;
             SearchPanel.Visibility = searching ? Visibility.Visible : Visibility.Collapsed;
-            if (searching) SearchPanel.Activate(); else SearchPanel.Deactivate();
-            Inspector.ShowParameters((string)item.Tag == "organize");
+            if (searching) SearchPanel.Activate();
         }
     }
 
-    private void FindFiles_Click(object sender, RoutedEventArgs e) => Navigation.SelectedItem = SearchNavigationItem;
-    private void Search_WorkspaceRequested(object? sender, EventArgs e) => Navigation.SelectedItem = Navigation.MenuItems[0];
+    private void Input_SearchRequested(object? sender, EventArgs e) => Navigation.SelectedItem = SearchNavigationItem;
+    private void Search_WorkspaceRequested(object? sender, EventArgs e) => Navigation.SelectedItem = WorkspaceNavigation;
+
+    private async void Input_FilesForCopyRequested(object? sender, FileInputTransferEventArgs e)
+    {
+        Navigation.SelectedItem = CopyNavigation;
+        await CopyViewModel.ImportFilesAsync(e.Files);
+    }
 
     private void Navigation_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
         if (args.InvokedItemContainer?.Tag is "tasks")
         {
+            if (SearchPanel.Visibility == Visibility.Visible) Navigation.SelectedItem = WorkspaceNavigation;
             ViewModel.IsQueueExpanded = !ViewModel.IsQueueExpanded;
-        }
-    }
-
-    private void WindowSize_Click(object sender, RoutedEventArgs e)
-    {
-        if (App.Window is MainWindow window && sender is MenuFlyoutItem item)
-        {
-            window.SetWorkspaceSize(item.Tag is "compact");
         }
     }
 }

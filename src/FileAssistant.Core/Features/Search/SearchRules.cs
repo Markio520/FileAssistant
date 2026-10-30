@@ -20,6 +20,12 @@ public static class SearchRules
 
     public static CompiledSearch Compile(SearchRequest request, DateTimeOffset? now = null)
     {
+        if (request.MinimumSize < 0 || request.MaximumSize < 0)
+            throw new SearchException("文件大小不能为负数。");
+        if (request.MinimumSize > request.MaximumSize)
+            throw new SearchException("最小大小不能大于最大大小。");
+        if (request.ModifiedFrom >= request.ModifiedBefore)
+            throw new SearchException("开始日期不能晚于结束日期。");
         if (request.Text.Length > 2048) throw new SearchException("搜索内容过长，请缩短到 2048 个字符以内。");
         List<List<SearchTerm>> groups = [[]];
         foreach (var token in Tokenize(request.Text))
@@ -41,6 +47,8 @@ public static class SearchRules
         if (request.MaximumSize is { } max) filters.Add(new(f => !f.IsFolder && f.Size <= max, $"file: size:<={max}"));
         if (request.ModifiedFrom is { } date)
             filters.Add(new(f => f.Modified >= date, $"dm:>={date.LocalDateTime:yyyy-MM-dd}"));
+        if (request.ModifiedBefore is { } before)
+            filters.Add(new(f => f.Modified < before, $"dm:<{before.LocalDateTime:yyyy-MM-dd}"));
         return new(groups, filters);
     }
 

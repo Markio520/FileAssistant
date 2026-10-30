@@ -4,6 +4,11 @@ namespace FileAssistant.App.Features.Workspace;
 public sealed record WorkspaceFile(string Name, string Type, long Size, string Directory, string Modified, string Glyph, int Category,
     FileAssistant.Core.Features.Search.SearchFile? Source = null)
 {
+    public static WorkspaceFile FromSource(FileAssistant.Core.Features.Search.SearchFile file)
+    {
+        var item = new Search.SearchResultItem(file);
+        return new(file.Name, item.TypeLabel, file.Size ?? -1, file.Directory, item.ModifiedLabel, item.Glyph, Search.SearchResultItem.Category(file), file);
+    }
     public bool IsSample => Source is null;
     public string SizeLabel => Source?.IsFolder == true ? "—" : Size < 0 ? "未索引" : FormatSize(Size);
     public string FullPath => Source?.FullPath ?? System.IO.Path.Combine(Directory, Name);

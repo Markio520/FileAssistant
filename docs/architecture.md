@@ -2,7 +2,7 @@
 
 > 整理日期：2026-10-29  
 > 状态：基于 C# / .NET 10 / WinUI 3 的工程架构约定。  
-> 已建立三个源码项目，并完成主工作区基础界面、构建与非打包启动验证；真实文件读写与操作业务尚未实现。
+> 当前已建立三个源码项目，接入真实文件搜索与共享文件引用输入；实际复制、改名等修改文件的业务尚未实现。最新验证边界见开发交接。
 > FileAssistant 是示例代码前缀，不代表产品名称已经确定。
 
 ## 1. 架构选择
@@ -222,7 +222,9 @@ NuGet 支持通过 `Directory.Packages.props` 集中管理版本；MSBuild 支�
 
 目前已建立真实可构建的三个源码项目、解决方案及统一配置。主工作区位于 `Features/Workspace`，已替换计数器模板；`WorkspacePage` 负责布局与输入适配，`WorkspaceViewModel` 负责列表与展示状态，`FileInspector` 和 `WorkspaceTaskPanel` 分别承载详情/参数和队列。共享主题位于 `Resources/WorkspaceTheme.xaml`。
 
-`WorkspaceFile` 是 App 展示模型，可引用真实的 Core `SearchFile`；`WorkspaceSamples` 仅用于界面示例。加入真实文件会清除示例，批次与当前筛选结果分别维护。旧的临时状态检查位于忽略的 `artifacts/workspace-state-check`。
+`WorkspaceFile` 是 App 展示模型，可引用真实的 Core `SearchFile`；`WorkspaceSamples` 仅用于界面示例。加入真实文件会清除示例，完整列表与当前筛选结果分别维护。旧的临时状态检查位于忽略的 `artifacts/workspace-state-check`。
+
+2026-10-30 第三步输入职责：`WorkspacePage` 只编排导航及功能转交；`App.Workspace` 与 `App.CopyInput` 分别持有暂存区和复制功能的独立 `WorkspaceViewModel`。两处复用 `Features/FileInput/FileInputView`，系统选择器、剪贴板与拖放的数据格式适配由同目录 `FileInputSources` 处理。Core `IFileInputReader` / `FileImportReport` 定义读取边界及逐项结果，Infrastructure `FileInputReader` 只规范化路径、检查存在/权限并读取属性，不递归展开、不修改原件。搜索加入、功能导入均重新调用该读取边界；输入中的异步读取支持取消及过期结果隔离。当前任务队列仍共用全局展示状态，不因增加功能输入而复制队列。
 
 搜索第一阶段按如下职责落地：
 
@@ -231,9 +233,10 @@ NuGet 支持通过 `Directory.Packages.props` 集中管理版本；MSBuild 支�
 - `Windows/EverythingRuntime` 管理随包引擎的配置、预热、共享准备任务、恢复与关闭；`EverythingDistribution` 固定版本和校验值；`EverythingServiceSetup` 把专用辅助服务安装到受保护目录。App 启动与关闭只负责组装和转交生命周期，短暂提权调用在创建窗口前完成服务准备，不提升日常文件操作界面。
 - App `Features/Search` 保存 WinUI 视图、显示模型及输入防抖/过期结果保护。文件夹选择器由视图持有窗口句柄，文件访问均经接口。具体搜索服务只在 `App.OnLaunched` 组装。
 - 搜索表格的共享列宽保存在 App `SearchColumnWidths`，行模型与表头使用同一实例；Thumb 手势和上下文菜单定位属于视图行为。Core `IFileInteraction` 隔离打开、定位与复制文本，Infrastructure `WindowsFileInteraction` 调用 Windows Shell 和剪贴板，ViewModel 组织反馈并可独立测试。
+- 搜索视图负责离开前记录、返回布局完成后恢复滚动位置；ViewModel 保留已完成的结果与选择，区分替换查询和翻页失败。`SearchViewModel.Filters` 管理自定义条件与表头排序，`SearchViewModel.Preferences` 管理常用条件与合并保存；布局与条件存储模型仍位于 App。Core `ISettingsStore` 仅定义文档读写边界，Infrastructure `JsonSettingsStore` 负责文件存储与完整替换，不引用界面类型。`ThrottledSearchProgress` 在进度进入 UI 调度队列之前限制通知频率。
 - Core.Tests 验证共用语法和分页；Infrastructure.Tests 验证真实临时目录和可选 Everything 实例；App.Tests 链接不依赖 WinUI 的状态模型，验证输入竞态、取消、输入法组合和批次独立性。原生控件另用 WinApp UI Automation 检查，不把这些状态测试称为完整 UI 自动化测试。
 
-下一步围绕内容预览和第一条复制流程添加实际代码与对应测试。目录占位不表示功能已经完成；源码与接口随实现添加，不一次性生成所有功能的空页面、空服务和空测试。
+下一步先按[开发交接](handoff-2026-10-30.md)完成第三步原生输入验收，再按用户确定的顺序接入实际处理功能。目录占位不表示功能已经完成；源码与接口随实现添加，不一次性生成所有功能的空页面、空服务和空测试。
 
 完整功能范围见[产品与技术方案](../文件操作助手-产品与技术方案.md)，用户要求和最新纠正见[项目约定](../AGENTS.md)。
 

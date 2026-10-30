@@ -8,13 +8,13 @@
         <Pivot.Resources>
             <x:Double x:Key="PivotHeaderItemFontSize">14</x:Double>
         </Pivot.Resources>
-        <PivotItem Header="文件预览" Margin="16,6,16,16">
+        <PivotItem Header="文件信息" Margin="16,6,16,16">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="20">
                     <Border Height="168" Background="{ThemeResource WorkspaceAccentSubtleBrush}" CornerRadius="8">
                         <StackPanel Spacing="18" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <FontIcon Glyph="{x:Bind ViewModel.PreviewGlyph, Mode=OneWay}" FontSize="48" Foreground="{ThemeResource WorkspaceAccentBrush}" />
-                            <TextBlock Text="文件预览" FontSize="12" Foreground="{ThemeResource WorkspaceAccentBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Text="文件信息" FontSize="12" Foreground="{ThemeResource WorkspaceAccentBrush}" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
                     <StackPanel Spacing="8">
@@ -43,7 +43,7 @@
                 </StackPanel>
             </ScrollViewer>
         </PivotItem>
-        <PivotItem Header="操作参数" Margin="16,6,16,16">
+        <PivotItem x:Name="ParametersTab" Header="操作参数" Margin="16,6,16,16">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="22">
                     <StackPanel Spacing="8">
@@ -67,7 +67,7 @@
                     <StackPanel Spacing="12">
                         <TextBlock Text="先预览，再执行" Style="{StaticResource WorkspaceSectionStyle}" />
                         <TextBlock Text="开始前核对目标路径与同名文件处理方式。当前为参数界面预览，尚未接入复制。" TextWrapping="Wrap" Foreground="{ThemeResource WorkspaceSecondaryBrush}" FontSize="13" />
-                        <Button Content="预览复制结果" IsEnabled="False" HorizontalAlignment="Stretch" ToolTipService.ToolTip="需要先接入真实文件与目标目录。" />
+                        <Button Content="预览复制结果" IsEnabled="False" HorizontalAlignment="Stretch" ToolTipService.ToolTip="复制预览与目标目录将在复制流程中接入。" />
                         <Button Content="开始复制" Style="{StaticResource AccentButtonStyle}" IsEnabled="False" HorizontalAlignment="Stretch" ToolTipService.ToolTip="复制执行将在后续步骤接入。" />
                     </StackPanel>
                 </StackPanel>
