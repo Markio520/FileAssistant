@@ -21,19 +21,24 @@ public partial class WorkspaceViewModel : ObservableObject
     private int importGeneration;
 
     public WorkspaceViewModel(IFileInputReader? inputReader = null, bool isStaging = true)
-    { this.inputReader = inputReader; IsStaging = isStaging; }
+        : this(inputReader, isStaging ? WorkspaceInputPurpose.Staging : WorkspaceInputPurpose.Copy) { }
 
-    public bool IsStaging { get; }
+    public WorkspaceViewModel(IFileInputReader? inputReader, WorkspaceInputPurpose purpose)
+    { this.inputReader = inputReader; Purpose = purpose; }
+
+    public WorkspaceInputPurpose Purpose { get; }
+    public bool IsStaging => Purpose == WorkspaceInputPurpose.Staging;
     public bool IsFunctionInput => !IsStaging;
-    public string Title => IsStaging ? "文件暂存区" : "复制与整理";
+    public string Title => Purpose switch { WorkspaceInputPurpose.Staging => "文件暂存区", WorkspaceInputPurpose.Conversion => "格式转换", _ => "复制与整理" };
     public string EmptyTitle => IsStaging ? "暂存区还没有文件" : "还没有待处理的文件";
     public string InputDescription => IsStaging ? "选择、拖入或粘贴文件，稍后交给需要的功能。" : "直接添加文件，或从暂存区选择文件导入。";
-    public string InputHint => "只记录文件引用，不改动原件；文件夹按本身加入，不展开内部文件。";
     public bool CanReceiveFiles => !IsLoading;
     public bool CanExportSelection => !IsLoading && !HasSamples && SelectionCount > 0;
     public bool CanExportAll => !IsLoading && SearchEntries.Count > 0;
     public string SendSelectedLabel => $"选中 {SelectionCount:N0} 项 → 复制与整理";
     public string SendAllLabel => $"全部 {SearchEntries.Count:N0} 项 → 复制与整理";
+    public string SendSelectedToConversionLabel => $"选中 {SelectionCount:N0} 项 → 格式转换";
+    public string SendAllToConversionLabel => $"全部 {SearchEntries.Count:N0} 项 → 格式转换";
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasInputFeedback))] public partial string InputFeedback { get; set; } = string.Empty;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasImportDetails))] public partial FileImportReport ImportReport { get; set; } = FileImportReport.Empty;
@@ -112,12 +117,12 @@ public partial class WorkspaceViewModel : ObservableObject
     public partial int FilterIndex { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSelection), nameof(SelectionSummary), nameof(PreviewName),
-        nameof(PreviewType), nameof(PreviewSize), nameof(PreviewPath), nameof(PreviewDate), nameof(PreviewGlyph), nameof(PreviewOrigin))]
+    [NotifyPropertyChangedFor(nameof(HasSelection), nameof(ShowSelectionHint), nameof(SelectionSummary), nameof(PreviewName),
+        nameof(PreviewType), nameof(PreviewSize), nameof(PreviewPath), nameof(PreviewDate), nameof(PreviewGlyph), nameof(PreviewOrigin), nameof(PreviewFile))]
     public partial WorkspaceFile? SelectedFile { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectionSummary), nameof(CanExportSelection), nameof(SendSelectedLabel))]
+    [NotifyPropertyChangedFor(nameof(SelectionSummary), nameof(CanExportSelection), nameof(SendSelectedLabel), nameof(SendSelectedToConversionLabel))]
     public partial int SelectionCount { get; set; }
 
     [ObservableProperty]
@@ -138,6 +143,7 @@ public partial class WorkspaceViewModel : ObservableObject
     public bool HasFiles => files.Count > 0;
     public bool CanEditList => HasFiles && !IsLoading;
     public bool HasSelection => SelectedFile is not null;
+    public bool ShowSelectionHint => !HasSelection;
     public bool ShowEmpty => !HasFiles && !IsLoading && !HasError;
     public bool ShowNoResults => HasFiles && VisibleFiles.Count == 0 && !IsLoading && !HasError;
     public bool ShowList => VisibleFiles.Count > 0 && !IsLoading && !HasError;
@@ -152,6 +158,7 @@ public partial class WorkspaceViewModel : ObservableObject
     public string PreviewPath => SelectedFile?.FullPath ?? string.Empty;
     public string PreviewDate => SelectedFile?.Modified ?? string.Empty;
     public string PreviewGlyph => SelectedFile?.Glyph ?? "\uE8A5";
+    public SearchFile? PreviewFile => SelectedFile?.Source;
 
     partial void OnSearchTextChanged(string value) => ApplyFilters();
     partial void OnFilterIndexChanged(int value) => ApplyFilters();
@@ -250,10 +257,11 @@ public partial class WorkspaceViewModel : ObservableObject
         SelectionCount = 0;
         VisibleFiles.Clear();
         var query = SearchText.Trim();
+        var typeFilter = SearchRules.Compile(new SearchRequest { Kind = (SearchKind)FilterIndex });
         foreach (var file in files.Where(file =>
             (query.Length == 0 || file.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 file.Directory.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
-            (FilterIndex <= 0 || file.Category == FilterIndex)))
+            typeFilter.Matches(file.Source ?? new SearchFile(file.FullPath, false, file.Size, null))))
         {
             VisibleFiles.Add(file);
         }
@@ -275,5 +283,6 @@ public partial class WorkspaceViewModel : ObservableObject
         OnPropertyChanged(nameof(CanExportSelection));
         OnPropertyChanged(nameof(CanExportAll));
         OnPropertyChanged(nameof(SendAllLabel));
+        OnPropertyChanged(nameof(SendAllToConversionLabel));
     }
 }

@@ -16,8 +16,11 @@ public sealed partial class FileInspector : UserControl
 
     public FileInspector() => InitializeComponent();
 
-    public void ShowParameters(bool show)
+    public void ShowParameters(bool show, UIElement? operationContent = null)
     {
+        CustomParameters.Content = operationContent;
+        CustomParameters.Visibility = operationContent is null ? Visibility.Collapsed : Visibility.Visible;
+        CopyParameters.Visibility = operationContent is null ? Visibility.Visible : Visibility.Collapsed;
         // Pivot still renders a collapsed item's header; remove the unavailable tab instead.
         if (!show) InspectorTabs.Items.Remove(ParametersTab);
         else if (!InspectorTabs.Items.Contains(ParametersTab)) InspectorTabs.Items.Add(ParametersTab);

@@ -2,6 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FileAssistant.Core\FileAssistant.Core.csproj" />
+    <PackageReference Include="Magick.NET-Q16-x64" />
+    <PackageReference Include="PDFiumCore" />
+    <PackageReference Include="PdfPig" />
+    <EmbeddedResource Include="../../engines/manifest.json" LogicalName="FileAssistant.EngineManifest.json" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -3,16 +3,13 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Input;
 using Windows.Storage.Pickers;
-using Windows.System;
 using FileAssistant.Core.Features.Search;
 
 namespace FileAssistant.App.Features.Search;
 
 public sealed partial class SearchView : UserControl
 {
-    private bool resizingColumn;
     private bool active;
     private object? savedResults;
     private double savedVerticalOffset;
@@ -79,17 +76,8 @@ public sealed partial class SearchView : UserControl
     private void FolderScope_Click(object sender, RoutedEventArgs e) { ViewModel.ScopeIndex = 1; FolderBox.Focus(FocusState.Programmatic); }
     private void ResultsHeader_SizeChanged(object sender, SizeChangedEventArgs e) => ResultsHeaderRow.Height = new GridLength(e.NewSize.Height);
     private void ResultsViewport_SizeChanged(object sender, SizeChangedEventArgs e) => ViewModel.ColumnWidths.FitViewport(e.NewSize.Width);
-    private void ColumnResize_Started(object sender, DragStartedEventArgs e) => resizingColumn = true;
-    private void ColumnResize_Delta(object sender, DragDeltaEventArgs e) => ViewModel.ColumnWidths.Resize((string)((Thumb)sender).Tag, e.HorizontalChange);
-    private void ColumnResize_Completed(object sender, DragCompletedEventArgs e) { resizingColumn = false; ProtectedCursor = null; }
-    private void ColumnResize_Entered(object sender, PointerRoutedEventArgs e) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
-    private void ColumnResize_Exited(object sender, PointerRoutedEventArgs e) { if (!resizingColumn) ProtectedCursor = null; }
-    private void ColumnResize_KeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key is not (VirtualKey.Left or VirtualKey.Right)) return;
-        ViewModel.ColumnWidths.Resize((string)((Thumb)sender).Tag, e.Key == VirtualKey.Left ? -8 : 8);
-        e.Handled = true;
-    }
+    private void Column_ResizeRequested(object? sender, double delta)
+        => ViewModel.ColumnWidths.Resize((string)((FrameworkElement)sender!).Tag, delta);
 
     private ListViewItem? ResultContainer(object? source)
     {

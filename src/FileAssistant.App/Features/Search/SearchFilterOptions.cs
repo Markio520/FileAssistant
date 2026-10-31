@@ -1,4 +1,5 @@
 using FileAssistant.App.Controls;
+using FileAssistant.App.Features.FileInput;
 using FileAssistant.Core.Features.Search;
 
 namespace FileAssistant.App.Features.Search;
@@ -11,14 +12,7 @@ public static class SearchFilterOptions
         new((int)SearchScope.Folder, "指定目录"),
         new((int)SearchScope.Batch, "文件暂存区")
     ];
-    public static IReadOnlyList<SelectionOption> Kinds { get; } =
-    [
-        new((int)SearchKind.All, "所有", "所有类型"),
-        new((int)SearchKind.Audio, "音频"), new((int)SearchKind.Archives, "压缩文件"),
-        new((int)SearchKind.Documents, "文档"), new((int)SearchKind.Executables, "可执行文件"),
-        new((int)SearchKind.Folders, "文件夹"), new((int)SearchKind.Images, "图片"),
-        new((int)SearchKind.Video, "视频"), new((int)SearchKind.Files, "仅文件")
-    ];
+    public static IReadOnlyList<SelectionOption> Kinds => FileTypeFilterOptions.All;
     public static IReadOnlyList<SelectionOption> Sizes { get; } =
     [
         new(0, "不限大小"), new(1, "小于 1 MB"), new(2, "1–10 MB"),

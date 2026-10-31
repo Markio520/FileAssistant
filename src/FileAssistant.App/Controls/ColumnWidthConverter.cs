@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
-namespace FileAssistant.App.Features.Search;
+namespace FileAssistant.App.Controls;
 
 public sealed class ColumnWidthConverter : IValueConverter
 {

@@ -7,6 +7,9 @@
     xmlns:input="using:FileAssistant.App.Features.FileInput"
     xmlns:search="using:FileAssistant.App.Features.Search"
     xmlns:controls="using:FileAssistant.App.Controls"
+    xmlns:convert="using:FileAssistant.App.Features.Convert"
+    xmlns:outputs="using:FileAssistant.App.Features.Outputs"
+    xmlns:settings="using:FileAssistant.App.Features.Settings"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -21,20 +24,20 @@
                 <NavigationViewItem x:Name="WorkspaceNavigation" Content="文件暂存区" Tag="workspace" IsSelected="True">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem x:Name="OutputsNavigation" Content="文件输出区" Tag="outputs">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItemHeader Content="文件操作" />
                 <NavigationViewItem x:Name="SearchNavigationItem" Content="搜索与筛选" Tag="search">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="批量改名" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
+                <NavigationViewItem Content="批量创建与改名" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem x:Name="CopyNavigation" Content="复制与整理" Tag="organize">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="批量创建" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F4;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="格式转换" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
+                <NavigationViewItem x:Name="ConversionNavigation" Content="格式转换" Tag="convert">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="压缩与解压" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
@@ -45,15 +48,21 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="设置" Tag="settings">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="任务队列" Tag="tasks" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
 
             <Grid>
-            <input:FileInputView x:Name="StagingPanel" ViewModel="{x:Bind ViewModel}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" />
+            <input:FileInputView x:Name="StagingPanel" ViewModel="{x:Bind ViewModel}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <input:FileInputView x:Name="CopyPanel" ViewModel="{x:Bind CopyViewModel}" Visibility="Collapsed" SearchRequested="Input_SearchRequested" />
             <search:SearchView x:Name="SearchPanel" Visibility="Collapsed" WorkspaceRequested="Search_WorkspaceRequested" />
+            <convert:ConversionView x:Name="ConversionPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" />
+            <outputs:OutputsView x:Name="OutputsPanel" Visibility="Collapsed" FilesForConversionRequested="Input_FilesForConversionRequested" FilesForCopyRequested="Input_FilesForCopyRequested" />
+            <settings:EnginesView x:Name="SettingsPanel" Visibility="Collapsed" />
             </Grid>
         </NavigationView>
     </Grid>

@@ -22,6 +22,11 @@ public partial class App : Application
     public static Features.Workspace.WorkspaceViewModel Workspace { get; private set; } = null!;
     public static Features.Workspace.WorkspaceViewModel CopyInput { get; private set; } = null!;
     public static Features.Search.SearchViewModel Search { get; private set; } = null!;
+    public static Core.Engines.IFileProcessingService FileProcessing { get; private set; } = null!;
+    public static Features.Convert.ConversionViewModel Conversion { get; private set; } = null!;
+    public static Features.Outputs.OutputsViewModel Outputs { get; private set; } = null!;
+    public static Features.Tasks.ProcessingJobsViewModel Jobs { get; private set; } = null!;
+    public static Features.Settings.EnginesViewModel EngineSettings { get; private set; } = null!;
     /// <summary>
     /// The main application window. Use <c>App.Window</c> from any class that needs
     /// the window reference (for dialogs, pickers, interop, etc.).
@@ -52,6 +57,12 @@ public partial class App : Application
         if (arguments.Length == 3 && arguments[1] == Infrastructure.Windows.EverythingDistribution.SetupArgument)
             Environment.Exit(Infrastructure.Windows.EverythingServiceSetup.Install(arguments[2]));
         InitializeComponent();
+        UnhandledException += (_, error) =>
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Logs");
+            try { Directory.CreateDirectory(directory); File.AppendAllText(Path.Combine(directory, "app-errors.log"), $"{DateTimeOffset.Now:O}\n{error.Exception}\n"); }
+            catch (Exception) { }
+        };
     }
 
     /// <summary>
@@ -83,6 +94,12 @@ public partial class App : Application
         var inputReader = new Infrastructure.FileSystem.FileInputReader();
         Workspace = new(inputReader);
         CopyInput = new(inputReader, isStaging: false);
+        FileProcessing = new Infrastructure.Engines.LocalFileProcessingService(Infrastructure.Engines.EnginePaths.Installed);
+        EngineSettings = new(FileProcessing, new Infrastructure.Engines.EnginePackageInstaller(new HttpClient { Timeout = TimeSpan.FromMinutes(10) },
+            Infrastructure.Engines.EnginePaths.ExtensionsDirectory), Infrastructure.Engines.EnginePackageCatalog.Ffmpeg);
+        Jobs = new();
+        Outputs = new(new Infrastructure.Windows.WindowsFileInteraction());
+        Conversion = new(FileProcessing, new(inputReader, Features.Workspace.WorkspaceInputPurpose.Conversion), Outputs, Jobs);
         indexRuntime = new(Infrastructure.Windows.EverythingDistribution.BundledExecutable,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Search", "Everything-1.4"), instance);
         var searchService = new Infrastructure.FileSystem.FileSearchService(
@@ -102,8 +119,16 @@ public partial class App : Application
             Search.Deactivate();
             Workspace.CancelLoadingCommand.Execute(null);
             CopyInput.CancelLoadingCommand.Execute(null);
+            Conversion.Input.CancelLoadingCommand.Execute(null);
+            Conversion.CancelCommand.Execute(null);
+            EngineSettings.CancelCommand.Execute(null);
             Window.AppWindow.Hide();
-            try { await Search.FlushPreferencesAsync(); await indexRuntime.DisposeAsync(); }
+            try
+            {
+                if (Conversion.RunCommand.ExecutionTask is { } processing) await processing;
+                if (EngineSettings.DownloadVideoCommand.ExecutionTask is { } download) await download;
+                await Search.FlushPreferencesAsync(); await indexRuntime.DisposeAsync();
+            }
             finally { closed = true; instanceMutex.ReleaseMutex(); instanceMutex.Dispose(); Window.Close(); }
         };
         _ = WarmIndexAsync();

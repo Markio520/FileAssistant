@@ -2,7 +2,7 @@
 
 > 整理日期：2026-10-29  
 > 状态：基于 C# / .NET 10 / WinUI 3 的工程架构约定。  
-> 当前已建立三个源码项目，接入真实文件搜索与共享文件引用输入；实际复制、改名等修改文件的业务尚未实现。最新验证边界见开发交接。
+> 当前已建立三个源码项目，接入真实文件搜索、共享引用输入、真实预览和常用本地格式转换；复制与改名执行尚未实现。最新验证边界见开发交接。
 > FileAssistant 是示例代码前缀，不代表产品名称已经确定。
 
 ## 1. 架构选择
@@ -46,8 +46,7 @@ FileAssistant/
 │  │  │  ├─ Workspace/               # 已有 WorkspacePage 和 WorkspaceViewModel
 │  │  │  ├─ Search/
 │  │  │  ├─ Preview/
-│  │  │  ├─ Create/
-│  │  │  ├─ Rename/
+│  │  │  ├─ CreateOrRename/           # 批量创建与改名，共用一个入口
 │  │  │  ├─ Organize/
 │  │  │  ├─ Convert/
 │  │  │  ├─ Archive/
@@ -67,7 +66,7 @@ FileAssistant/
 │  │  ├─ Abstractions/                # 外部能力接口
 │  │  ├─ Features/                    # 各功能的选项、规则和计划生成
 │  │  │  ├─ Search/
-│  │  │  ├─ Rename/
+│  │  │  ├─ CreateOrRename/
 │  │  │  └─ ...                       # 其余功能在实现时添加
 │  │  ├─ Operations/                  # 操作计划、执行编排、结果与恢复检查
 │  │  ├─ Jobs/                        # 队列、取消、进度与重试策略
@@ -99,16 +98,20 @@ FileAssistant/
 
 ### 目录职责补充
 
-- 单选下拉的公共行为放在 `App/Controls/SelectionDropDown.cs`，选项类型 `SelectionOption` 不依赖 WinUI。搜索与工作区各自维护 `SearchFilterOptions`、`WorkspaceSelectionOptions`，页面只绑定稳定的选项值，不用菜单顺序或字符串 Tag 推断业务值。
+- 表格列宽和右侧栏共用 `Controls/ResizeHandle` 的原生 Thumb、左右键与横向光标，外观统一放在 `Resources/ResizeControls.xaml`，网格宽度转换器位于 `Controls/ColumnWidthConverter`。`Controls/ResizablePane` 负责右侧栏的宽度边界、收起及恢复，窗口缩小时限制实际宽度但保留用户偏好。搜索列宽仍由 `SearchColumnWidths` 管理并沿用持久化；输入表的三列由每个 `FileInputView` 独有的 `FileInputColumnWidths` 管理，表头和行共享绑定，横向滚动同步。暂存区、复制、转换通过共用输入视图接入，输出区也复用同一侧栏容器。侧栏宽度与新增输入列宽本轮仅保存在当前页面实例中。
+
+- 单选下拉的公共行为放在 `App/Controls/SelectionDropDown.cs`，选项类型 `SelectionOption` 不依赖 WinUI。搜索与工作区的类型选项共用 `Features/FileInput/FileTypeFilterOptions`，过滤均复用 Core 的 `SearchRules`；其余业务选项分别放在 `SearchFilterOptions`、`WorkspaceSelectionOptions`。页面只绑定稳定的选项值，不用菜单顺序或字符串 Tag 推断业务值。
 - 两个页面的外观入口统一使用 `Controls/ThemeSelectionDropDown`，继承公共选择框的弹层与选中样式，保留图标按钮。控件订阅应用根节点的 `RequestedTheme` 并在卸载时取消订阅，确保两处选中状态同步；主题切换不再由页面菜单事件分别处理。
 - 所有选择框复用 `Resources/SelectionControls.xaml` 的按钮、弹层、选中行和间距。`ThemePalette.xaml` 集中维护配色，`WorkspaceTheme.xaml` 将颜色映射为语义画刷；控件通过 `ThemeResource` 消费，不保存颜色副本。保留 Fluent 的文字、交互状态与高对比度资源。
 - `SelectionDropDown` 用原生 DropDownButton、Flyout、ListView 与 ListViewItemPresenter 组合：按钮文本固定、菜单下方居中，单选竖条、键盘导航和焦点由公共控件管理。方向键浏览，回车/空格或点击确认，Esc/点击外部不提交；外部清空条件时按钮和下次打开的选中项同步。
+- 添加、用于功能、界面示例等动作入口使用 `Controls/ActionDropDown`，复用同一资源字典中的按钮、弹层间距、下方居中位置和语义配色。文本动作项共用 `ActionDropDownItemStyle`，悬停及键盘焦点只显示背景，不显示竖条或黑色焦点框。绿色竖条仅表示筛选菜单的已选项，不用于未选项悬停；动作仍使用原生 `MenuFlyout`，保留命令、禁用状态与键盘行为，不记录单选值。
+- 用户指定搜索页类型菜单作为统一高度标准：按钮/菜单行最小高度 32 DIP，行内边距 12,6、外边距 0,1，正常字体下相邻行间距 34 DIP；弹层内边距 4 DIP，竖条 3×16 DIP。公共尺寸保存在 `SelectionControls.xaml`，页面不覆盖行高；字体缩放时允许内容自然增高。
 - 含编译绑定的 `SelectionControls` 资源字典必须在 `App.xaml` 中通过 `<resources:SelectionControls />` 实例化，不能改成仅设置文件 `Source`，否则模板文字的绑定初始化不会运行。参见 [Microsoft：资源字典中的 x:Bind](https://learn.microsoft.com/en-us/windows/uwp/data-binding/data-binding-in-depth#resource-dictionaries-with-xbind)。
 
 - `src` 只放源码和构建所需资源；测试程序放 `tests`。
 - 已有产品方案保留在根目录，后续架构和专项说明放 `docs`，避免复制多份同一规范。
 - NuGet 依赖通过包管理还原，不手工把 DLL 散落到源码目录。
-- 独立转换引擎通过固定版本的获取与打包流程管理；其许可证和版本信息放 `third-party`。
+- 独立转换引擎按基础/扩展能力分层：基础包走固定版本打包，扩展包由用户在设置中按需下载，匹配架构并校验完整性后安装到应用数据目录。运行中任务固定使用已选引擎版本；引擎管理与文件处理分开，下载完成不自动开始转换。其许可证和版本信息放 `third-party`，按需下载不替代许可核对。此为后续实现规范，当前尚无转换引擎管理实现。
 - `bin`、`obj`、`.vs`、`TestResults` 和 `artifacts` 等构建或本机输出纳入忽略规则。
 - 日志、缓存、数据库、下载的引擎使用 Windows 应用数据目录；用户处理结果使用用户选择的位置，不写进源码或安装目录。
 - MSIX 清单只维护一处。`packaging` 保存额外发布配置，实际安装包输出到 `artifacts`。
@@ -136,16 +139,18 @@ flowchart LR
 
 Core 使用普通 `net10.0` 目标，App 和 Infrastructure 使用 `net10.0-windows10.0.26100.0`。工程最低系统版本参数目前沿用模板的 `10.0.17763.0`，实际仅在 Windows 11 x64 验证，不将该参数视作对所有旧系统的兼容性承诺。组件版本集中记录在 `Directory.Packages.props`。
 
-## 4. 按功能摆放的示例：批量改名
+## 4. 按功能摆放的示例：批量创建与改名
+
+2026-10-30 用户确认合并入口，App 和 Core 的预留目录统一为 `Features/CreateOrRename`。以下以其中的改名规则展示职责划分；创建与改名仍按各自规则生成计划，不把合并入口等同于实际处理功能已实现。
 
 ```text
-src/FileAssistant.App/Features/Rename/
-├─ RenamePage.xaml                   # 页面布局与数据绑定
-├─ RenamePage.xaml.cs                # 必要的界面事件与视图行为
-├─ RenameViewModel.cs                # 输入状态、命令和结果展示
+src/FileAssistant.App/Features/CreateOrRename/
+├─ CreateOrRenamePage.xaml           # 合并入口的页面布局与数据绑定
+├─ CreateOrRenamePage.xaml.cs        # 必要的界面事件与视图行为
+├─ CreateOrRenameViewModel.cs        # 输入状态、命令和结果展示
 └─ RenameItemViewModel.cs            # 需要时添加的逐项展示状态
 
-src/FileAssistant.Core/Features/Rename/
+src/FileAssistant.Core/Features/CreateOrRename/
 ├─ RenameOptions.cs                  # 用户规则对应的业务参数
 └─ RenamePlanner.cs                  # 根据输入生成重命名计划
 
@@ -163,7 +168,7 @@ src/FileAssistant.Infrastructure/FileSystem/
 src/FileAssistant.Infrastructure/Persistence/
 └─ SqliteOperationJournal.cs         # 操作记录持久化实现
 
-tests/FileAssistant.Core.Tests/Features/Rename/
+tests/FileAssistant.Core.Tests/Features/CreateOrRename/
 └─ RenamePlannerTests.cs
 ```
 
@@ -240,3 +245,9 @@ NuGet 支持通过 `Directory.Packages.props` 集中管理版本；MSBuild 支�
 
 完整功能范围见[产品与技术方案](../文件操作助手-产品与技术方案.md)，用户要求和最新纠正见[项目约定](../AGENTS.md)。
 
+
+## 本地引擎、转换与输出职责（2026-10-30）
+
+Core 的 Engines 定义预览、转换计划/结果及下载契约；Infrastructure 的 Engines 按 Images、Media、Pdf 隔离 Magick.NET、FFmpeg、PDFium 和 PdfPig，并集中处理文件状态、缓存、无覆盖提交及版本包安装。App 只在启动时组装接口，Features/Preview 显示结果，Features/Convert 配置和执行同一计划，Features/Tasks 管理进度与取消，Features/Outputs 记录真实成功产物并按任务筛选。功能输入与全局暂存区始终独立。
+
+根目录 engines 保存固定下载清单和接入说明；二进制进入忽略的 artifacts 开发缓存或运行目录，引擎与用户输出文件分开。设置只在用户点击时下载，校验与激活完成后供公共服务调用。目录、示例、能力及验证边界见 [本地引擎说明](../engines/README.md)。

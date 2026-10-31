@@ -4,8 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:FileAssistant.App.Features.Workspace"
     xmlns:input="using:FileAssistant.Core.Features.FileInput"
+    xmlns:inputView="using:FileAssistant.App.Features.FileInput"
     xmlns:controls="using:FileAssistant.App.Controls">
     <UserControl.Resources>
+        <inputView:FileInputColumnWidths x:Key="FileColumns" />
         <DataTemplate x:Key="StagingItemTemplate" x:DataType="local:WorkspaceFile">
             <StackPanel Spacing="4" Padding="4,6">
                 <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -27,7 +29,6 @@
                     <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="WorkspaceLayout.Margin" Value="16,12,16,16" />
-                        <Setter Target="InspectorColumn.Width" Value="280" />
                         <Setter Target="HeaderSubtitle.Visibility" Value="Collapsed" />
                     </VisualState.Setters>
                 </VisualState>
@@ -35,7 +36,6 @@
                     <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1140" /></VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="WorkspaceLayout.Margin" Value="24,12,24,20" />
-                        <Setter Target="InspectorColumn.Width" Value="304" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -54,8 +54,8 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <controls:ThemeSelectionDropDown x:Name="ThemeButton" />
-                        <DropDownButton Content="界面示例" AutomationProperties.Name="界面示例" Visibility="{x:Bind ViewModel.IsStaging, Mode=OneWay}">
-                            <DropDownButton.Flyout>
+                        <controls:ActionDropDown Content="界面示例" AutomationProperties.Name="界面示例" Visibility="{x:Bind ViewModel.IsStaging, Mode=OneWay}">
+                            <controls:ActionDropDown.Flyout>
                                 <MenuFlyout>
                                     <MenuFlyoutItem Text="载入示例文件" Command="{x:Bind ViewModel.LoadSamplesCommand}" />
                                     <MenuFlyoutItem Text="查看加载状态" Command="{x:Bind ViewModel.LoadSamplesCommand}" CommandParameter="slow" />
@@ -67,8 +67,8 @@
                                     <MenuFlyoutItem Text="紧凑窗口" Tag="compact" Click="WindowSize_Click" />
                                     <MenuFlyoutItem Text="标准窗口" Tag="standard" Click="WindowSize_Click" />
                                 </MenuFlyout>
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
+                            </controls:ActionDropDown.Flyout>
+                        </controls:ActionDropDown>
                     </StackPanel>
                 </Grid>
 
@@ -85,50 +85,69 @@
 
                 <Border Grid.Row="2" Background="{ThemeResource WorkspaceSurfaceBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="10"
                     AllowDrop="True" DragOver="Files_DragOver" Drop="Files_Drop">
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="InspectorColumn" Width="304" /></Grid.ColumnDefinitions>
+                    <controls:ResizablePane x:Name="DetailsHost">
+                        <controls:ResizablePane.MainContent>
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" /><RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid Margin="16,14" ColumnSpacing="8" RowSpacing="10">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel Orientation="Horizontal" Spacing="8" Grid.ColumnSpan="2">
-                                    <DropDownButton Content="添加" IsEnabled="{x:Bind ViewModel.CanReceiveFiles, Mode=OneWay}" AutomationProperties.Name="添加文件或文件夹">
-                                        <DropDownButton.Flyout><MenuFlyout>
+                                <ScrollViewer Grid.ColumnSpan="2" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <controls:ActionDropDown Content="添加" IsEnabled="{x:Bind ViewModel.CanReceiveFiles, Mode=OneWay}" AutomationProperties.Name="添加文件或文件夹">
+                                        <controls:ActionDropDown.Flyout><MenuFlyout>
                                             <MenuFlyoutItem Text="选择文件…" Click="PickFiles_Click" />
                                             <MenuFlyoutItem Text="选择文件夹…" Click="PickFolder_Click" />
                                             <MenuFlyoutItem Text="从搜索结果添加…" Click="FindFiles_Click" Visibility="{x:Bind ViewModel.IsStaging, Mode=OneWay}" />
-                                        </MenuFlyout></DropDownButton.Flyout>
-                                    </DropDownButton>
-                                    <Button Content="粘贴" Click="Paste_Click" IsEnabled="{x:Bind ViewModel.CanReceiveFiles, Mode=OneWay}" ToolTipService.ToolTip="粘贴复制的文件，或每行一个完整路径（Ctrl+V）" />
-                                    <DropDownButton Content="用于功能" Visibility="{x:Bind ViewModel.IsStaging, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanExportAll, Mode=OneWay}">
-                                        <DropDownButton.Flyout><MenuFlyout>
+                                        </MenuFlyout></controls:ActionDropDown.Flyout>
+                                    </controls:ActionDropDown>
+                                    <controls:ActionDropDown Content="用于功能" Visibility="{x:Bind ViewModel.IsStaging, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanExportAll, Mode=OneWay}">
+                                        <controls:ActionDropDown.Flyout><MenuFlyout>
                                             <MenuFlyoutItem Text="{x:Bind ViewModel.SendSelectedLabel, Mode=OneWay}" Click="SendSelected_Click" IsEnabled="{x:Bind ViewModel.CanExportSelection, Mode=OneWay}" />
                                             <MenuFlyoutItem Text="{x:Bind ViewModel.SendAllLabel, Mode=OneWay}" Click="SendAll_Click" />
-                                        </MenuFlyout></DropDownButton.Flyout>
-                                    </DropDownButton>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="{x:Bind ViewModel.SendSelectedToConversionLabel, Mode=OneWay}" Click="ConvertSelected_Click" IsEnabled="{x:Bind ViewModel.CanExportSelection, Mode=OneWay}" />
+                                            <MenuFlyoutItem Text="{x:Bind ViewModel.SendAllToConversionLabel, Mode=OneWay}" Click="ConvertAll_Click" />
+                                        </MenuFlyout></controls:ActionDropDown.Flyout>
+                                    </controls:ActionDropDown>
                                     <Button Content="从暂存区导入" Click="ImportFromStaging_Click" Visibility="{x:Bind ViewModel.IsFunctionInput, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanReceiveFiles, Mode=OneWay}" />
                                     <Button Content="加入暂存区" Click="AddToStaging_Click" Visibility="{x:Bind ViewModel.IsFunctionInput, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanExportSelection, Mode=OneWay}" ToolTipService.ToolTip="将选中文件加入全局暂存区，供其他功能复用" />
                                 </StackPanel>
-                                <controls:SelectionDropDown Grid.Row="1" HorizontalAlignment="Left" MinWidth="112"
+                                </ScrollViewer>
+                                <controls:SelectionDropDown Grid.Row="1" HorizontalAlignment="Left"
                                     ItemsSource="{x:Bind local:WorkspaceSelectionOptions.Types}" SelectedValue="{x:Bind ViewModel.FilterIndex, Mode=TwoWay}"
                                     IsEnabled="{x:Bind ViewModel.CanEditList, Mode=OneWay}" AutomationProperties.Name="文件类型筛选" />
-                                <Button Grid.Row="1" Grid.Column="1" Content="清空" Command="{x:Bind ViewModel.ClearCommand}" IsEnabled="{x:Bind ViewModel.CanEditList, Mode=OneWay}"
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="清空" Command="{x:Bind ViewModel.ClearCommand}" IsEnabled="{x:Bind ViewModel.CanEditList, Mode=OneWay}"
                                     ToolTipService.ToolTip="只清空当前列表，不删除磁盘文件。" />
+                                <ToggleButton Content="侧栏" IsChecked="{x:Bind DetailsHost.IsPaneOpen, Mode=TwoWay}" AutomationProperties.Name="显示或收起文件信息与操作参数侧栏" ToolTipService.ToolTip="显示或收起文件信息与操作参数侧栏" />
+                                </StackPanel>
                             </Grid>
-                            <Border Grid.Row="1" Padding="20,9" Background="{ThemeResource WorkspaceSubtleBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,1">
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions><RowDefinition x:Name="FilesHeaderRow" Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <ScrollViewer x:Name="FilesViewport" Grid.RowSpan="2" SizeChanged="FilesViewport_SizeChanged"
+                                    HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                <Grid Width="{Binding ViewportWidth, ElementName=FilesViewport}" MinWidth="{Binding MinimumTableWidth, Source={StaticResource FileColumns}}">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <Border x:Name="FilesHeader" SizeChanged="FilesHeader_SizeChanged" Padding="18,9" Background="{ThemeResource WorkspaceSubtleBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,1">
                                 <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="80" /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="文件名 / 所在位置" Style="{StaticResource WorkspaceCaptionStyle}" Margin="34,0,0,0" />
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding Name, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                        <ColumnDefinition Width="{Binding Type, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                        <ColumnDefinition Width="{Binding Size, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="文件名 / 所在位置" Style="{StaticResource WorkspaceCaptionStyle}" Margin="40,0,0,0" />
                                     <TextBlock Grid.Column="1" Text="类型" Style="{StaticResource WorkspaceCaptionStyle}" />
-                                    <TextBlock Grid.Column="2" Text="大小" HorizontalAlignment="Right" Style="{StaticResource WorkspaceCaptionStyle}" />
+                                    <TextBlock Grid.Column="2" Text="大小" Style="{StaticResource WorkspaceCaptionStyle}" />
+                                    <controls:ResizeHandle Tag="Name" Style="{StaticResource ColumnResizeHandle}" ResizeRequested="Column_ResizeRequested" AutomationProperties.Name="调整文件名与所在位置列宽" ToolTipService.ToolTip="拖动调整文件名与所在位置列宽" />
+                                    <controls:ResizeHandle Grid.Column="1" Tag="Type" Style="{StaticResource ColumnResizeHandle}" ResizeRequested="Column_ResizeRequested" AutomationProperties.Name="调整类型列宽" ToolTipService.ToolTip="拖动调整类型列宽" />
+                                    <controls:ResizeHandle Grid.Column="2" Tag="Size" Style="{StaticResource ColumnResizeHandle}" ResizeRequested="Column_ResizeRequested" AutomationProperties.Name="调整大小列宽" ToolTipService.ToolTip="拖动调整大小列宽" />
                                 </Grid>
                             </Border>
-                            <Grid Grid.Row="2">
-                                <ListView x:Name="FileList" ItemsSource="{x:Bind ViewModel.VisibleFiles}" SelectionMode="Extended"
+                                <ListView x:Name="FileList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.VisibleFiles}" SelectionMode="Extended"
                                     IsMultiSelectCheckBoxEnabled="True" ItemContainerStyle="{StaticResource WorkspaceListItemStyle}"
                                     SelectionChanged="FileList_SelectionChanged" Margin="4,6" Visibility="{x:Bind ViewModel.ShowList, Mode=OneWay}"
                                     ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -140,7 +159,11 @@
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="local:WorkspaceFile">
                                             <Grid ColumnSpacing="12" ToolTipService.ToolTip="{x:Bind FullPath}">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="80" /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="{Binding Name, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                                    <ColumnDefinition Width="{Binding Type, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                                    <ColumnDefinition Width="{Binding Size, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />
+                                                </Grid.ColumnDefinitions>
                                                 <Grid ColumnSpacing="12">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                     <FontIcon Glyph="{x:Bind Glyph}" FontSize="24" Foreground="{ThemeResource WorkspaceAccentBrush}" />
@@ -149,31 +172,39 @@
                                                         <TextBlock Text="{x:Bind Directory}" TextTrimming="CharacterEllipsis" Style="{StaticResource WorkspaceCaptionStyle}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind Type}" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind SizeLabel}" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind Type}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
+                                                <TextBlock Grid.Column="2" Text="{x:Bind SizeLabel}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </DataTemplate>
                                     </ListView.ItemTemplate>
                                 </ListView>
-                                <StackPanel Spacing="14" Margin="32" MaxWidth="360" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.ShowEmpty, Mode=OneWay}">
+                                </Grid>
+                                </ScrollViewer>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" Visibility="{x:Bind ViewModel.ShowEmpty, Mode=OneWay}">
+                                <StackPanel Spacing="14" Margin="24,16" MaxWidth="360" HorizontalAlignment="Center">
                                     <FontIcon Glyph="&#xE8B7;" FontSize="48" Foreground="{ThemeResource WorkspaceAccentBrush}" Margin="0,0,0,6" />
                                     <TextBlock Text="{x:Bind ViewModel.EmptyTitle, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" TextAlignment="Center" />
                                     <TextBlock Text="{x:Bind ViewModel.InputDescription, Mode=OneWay}" TextWrapping="Wrap" TextAlignment="Center" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
                                     <Button Content="选择文件" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" Margin="0,6,0,0" Click="PickFiles_Click" />
-                                    <TextBlock Text="{x:Bind ViewModel.InputHint, Mode=OneWay}" Style="{StaticResource WorkspaceCaptionStyle}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <StackPanel Spacing="12" Margin="32" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.ShowNoResults, Mode=OneWay}">
+                                </ScrollViewer>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" Visibility="{x:Bind ViewModel.ShowNoResults, Mode=OneWay}">
+                                <StackPanel Spacing="12" Margin="24,16" HorizontalAlignment="Center">
                                     <FontIcon Glyph="&#xE721;" FontSize="32" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
                                     <TextBlock Text="没有匹配的文件" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                     <TextBlock Text="试试其他关键词，或清除筛选条件。" Foreground="{ThemeResource WorkspaceSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
                                     <Button Content="清除筛选" HorizontalAlignment="Center" Command="{x:Bind ViewModel.ResetFiltersCommand}" />
                                 </StackPanel>
-                                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}">
+                                </ScrollViewer>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}">
+                                <StackPanel Spacing="16" Margin="24,16" HorizontalAlignment="Center">
                                     <ProgressRing Width="36" Height="36" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Foreground="{ThemeResource WorkspaceAccentBrush}" />
                                     <TextBlock Text="{x:Bind ViewModel.LoadingMessage, Mode=OneWay}" FontSize="18" />
                                     <Button Content="取消加载" HorizontalAlignment="Center" Command="{x:Bind ViewModel.CancelLoadingCommand}" />
                                 </StackPanel>
-                                <StackPanel Spacing="14" Margin="32" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
+                                </ScrollViewer>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
+                                <StackPanel Spacing="14" Margin="24,16" HorizontalAlignment="Center">
                                     <FontIcon Glyph="&#xE783;" FontSize="36" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
                                     <TextBlock Text="暂时无法加载文件" FontSize="20" FontWeight="SemiBold" TextAlignment="Center" />
                                     <TextBlock Text="错误状态示例：文件可能已移动或无法访问。&#x0a;可重试，或返回原列表。" TextAlignment="Center" TextWrapping="Wrap" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
@@ -182,8 +213,9 @@
                                         <Button Content="返回列表" Command="{x:Bind ViewModel.DismissErrorCommand}" />
                                     </StackPanel>
                                 </StackPanel>
+                                </ScrollViewer>
                             </Grid>
-                            <Border Grid.Row="3" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="16,8">
+                            <Border Grid.Row="2" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="16,8">
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
@@ -194,10 +226,13 @@
                                 </Grid>
                             </Border>
                         </Grid>
-                        <Border Grid.Column="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1,0,0,0" Background="{ThemeResource WorkspaceSubtleBrush}" CornerRadius="0,10,10,0">
+                        </controls:ResizablePane.MainContent>
+                        <controls:ResizablePane.PaneContent>
+                        <Border BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1,0,0,0" Background="{ThemeResource WorkspaceSubtleBrush}" CornerRadius="0,10,10,0">
                             <local:FileInspector x:Name="Inspector" ViewModel="{x:Bind ViewModel}" />
                         </Border>
-                    </Grid>
+                        </controls:ResizablePane.PaneContent>
+                    </controls:ResizablePane>
                 </Border>
                 <Grid Grid.Row="3" ColumnSpacing="12" Visibility="{x:Bind ViewModel.HasInputFeedback, Mode=OneWay}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

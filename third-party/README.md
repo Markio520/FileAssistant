@@ -1,6 +1,6 @@
 # 第三方组件与初始化来源
 
-记录当前已经引入的组件。产品方案中的 SQLite、7-Zip、图片和 PDF 引擎尚未接入。应用自身的许可证仍未决定。
+记录当前已经引入的组件。SQLite、7-Zip 尚未接入；图片、视频首帧和 PDF 引擎已接入，见下文。应用自身的许可证仍未决定。
 
 ## 直接依赖
 
@@ -32,6 +32,22 @@ Windows App SDK 的开源源码许可与 NuGet 分发包所附条款分别记录
 `scripts/test-everything.ps1` 的开发测试缓存与发布依赖分开，核对[官方 SHA-256](https://www.voidtools.com/Everything-1.4.1.1032.sha256)与 Authenticode 签名。独立实例索引生成的属性与类型样本，生命周期测试另建临时文件夹，不安装测试服务；可执行扩展名样本仅用于元数据过滤，从不执行。测试产物留在忽略的 `artifacts/everything-test`，不进入发布包。
 
 测试工程新增 Microsoft.NET.Test.Sdk 17.14.1（NuGet 元数据为 MIT）、xunit 2.9.3 与 xunit.runner.visualstudio 3.1.4（NuGet 元数据均为 Apache-2.0），仅供测试使用，版本与传递依赖记录在集中配置及各测试项目的锁文件中。许可已核对本机还原包的 `.nuspec`，不计入应用运行时依赖。
+
+## 本地预览与转换引擎（2026-10-30）
+
+版本和调用位置见 [engines/README.md](../engines/README.md)，NuGet 内容由锁文件固定；FFmpeg 由 [manifest.json](../engines/manifest.json) 固定下载地址、版本及 SHA-256。当前仅验证 Windows x64。
+
+| 组件 | 版本 | 当前用途 | 许可与声明 |
+| --- | --- | --- | --- |
+| Magick.NET-Q16-x64 | 15.0.0 | 图片解码、预览和 PNG/JPEG/WebP/BMP 编码 | 包元数据为 Apache-2.0；保留包内 [Copyright](licenses/Magick.NET-15.0.0-Copyright.txt) 和包含 ImageMagick / 原生依赖声明的 [NOTICE](licenses/Magick.NET-15.0.0-NOTICE.txt) |
+| PDFiumCore | 157.0.8100 | .NET PDFium 调用封装 | [对应源码提交的 Apache-2.0 许可](licenses/PDFiumCore-157.0.8100.txt)，来源提交 `9818b101e713409e033b5489cb41c949e953dced` |
+| bblanchon.PDFium.Win32 / PDFium | 157.0.8100 | PDF 首页渲染与逐页导出 | 保留[二进制分发声明](licenses/PDFium-157.0.8100-NOTICES.txt)和[原生第三方许可目录](licenses/PDFium-157.0.8100/)，其中 `pdfium.txt` 是 PDFium 自身的 BSD 风格许可 |
+| PdfPig | 0.1.16 | 图片合并成 PDF | [对应源码提交的 Apache-2.0 许可](licenses/PdfPig-0.1.16.txt)，来源提交 `a7bb35662bbbf405efddad50aedc9bcdcf515afc` |
+| FFmpeg（BtbN LGPL shared 构建） | 8.1.3-9-g29e619e767 | 视频首帧 | 原包 LGPL-3.0 LICENSE 与文档随 `Engines/ffmpeg/` 交付；校验 `-buildconf` 无 `--enable-gpl` / `--enable-nonfree`，不据此将全部依赖统称为 Apache 或 MIT |
+
+PDFium 声明取自固定 [chromium/8100 发行包](https://github.com/bblanchon/pdfium-binaries/releases/tag/chromium/8100)；该包 `bin/pdfium.dll` 与 NuGet 的 win-x64 DLL SHA-256 相同：`AE913F407E8D3F5CDBF08A9869564D647B13E132E01EB376C0A5A33B7A227A45`。声明中的 `licenses/` 相对路径对应本仓库同版本许可目录；应用输出将声明统一复制至 `Licenses/`，文件名中的版本点替换为下划线，以免被 PRI 当作资源限定符。
+
+FFmpeg [固定二进制包](https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n8.1.3-9-g29e619e767-win64-lgpl-shared-8.1.zip)为 80,733,362 字节；[源码提交](https://github.com/FFmpeg/FFmpeg/commit/29e619e767)及[构建配方](https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08)记录在清单。当前为本地开发接入，尚未对外发布；正式分发前须按实际 LGPL 构建及所有外部库补齐对应源码获取/分发材料、构建配置和完整许可清单，不能将构建通过等同于分发审计通过。
 
 ## 工程生成来源
 

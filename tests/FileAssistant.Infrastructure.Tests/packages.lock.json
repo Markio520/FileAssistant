@@ -29,6 +29,26 @@
         "resolved": "3.1.4",
         "contentHash": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
       },
+      "bblanchon.PDFium.Linux": {
+        "type": "Transitive",
+        "resolved": "157.0.8100",
+        "contentHash": "+VKTzJDX1aMJ2AX33qxtyLQY2d5IA1o1FwDbQeaJQnYevSFbYAFjVeQeinaPcjiEA4qUSicjhh7uGCQD4qqFyw=="
+      },
+      "bblanchon.PDFium.macOS": {
+        "type": "Transitive",
+        "resolved": "157.0.8100",
+        "contentHash": "dfRqlwdZJsEAi0sgvZvpZSG19NdWTjCaePnQsWIt56TsTjz2lKb1C+NO2lzzbsg8D+BsNpcRtJNe274d0q4itg=="
+      },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "157.0.8100",
+        "contentHash": "OeimMc5Zn7XFuiczK1/C88Xfe3Ney4fxIxnhKfO44TVIvMhNqEbkbrRYaFGS5SMveaw3uDG0lewgV9qICZjpAQ=="
+      },
+      "Magick.NET.Core": {
+        "type": "Transitive",
+        "resolved": "15.0.0",
+        "contentHash": "mP/VovMRuXBX2Rcnn1wWu0Zur6cjsf8IQhmTUCrasEk8cyAtN5sjHE7NxiH88whw8/2mjRvuphKUwj6bAZslpQ=="
+      },
       "Microsoft.CodeCoverage": {
         "type": "Transitive",
         "resolved": "17.14.1",
@@ -99,8 +119,37 @@
       "fileassistant.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "FileAssistant.Core": "[1.0.0, )"
+          "FileAssistant.Core": "[1.0.0, )",
+          "Magick.NET-Q16-x64": "[15.0.0, )",
+          "PDFiumCore": "[157.0.8100, )",
+          "PdfPig": "[0.1.16, )"
         }
+      },
+      "Magick.NET-Q16-x64": {
+        "type": "CentralTransitive",
+        "requested": "[15.0.0, )",
+        "resolved": "15.0.0",
+        "contentHash": "qq0tD/yKQZJCW8xbJ0R6dvzbPBKsSQi0M1688dMaj5NVt5coYV9BMqDeeSgjO7W003yIrycRPcS//s2uxgNipg==",
+        "dependencies": {
+          "Magick.NET.Core": "15.0.0"
+        }
+      },
+      "PDFiumCore": {
+        "type": "CentralTransitive",
+        "requested": "[157.0.8100, )",
+        "resolved": "157.0.8100",
+        "contentHash": "YtIi9SKS37Ub9NJSKTzf8xnHGJcdgcprH0KsMUEL4usP5LL50G1P6dCrmvQDTBhd7/16XQPLz2r4fGe7joI72A==",
+        "dependencies": {
+          "bblanchon.PDFium.Linux": "157.0.8100",
+          "bblanchon.PDFium.Win32": "157.0.8100",
+          "bblanchon.PDFium.macOS": "157.0.8100"
+        }
+      },
+      "PdfPig": {
+        "type": "CentralTransitive",
+        "requested": "[0.1.16, )",
+        "resolved": "0.1.16",
+        "contentHash": "qQcbsNMYVY+K5ELptax2S8thNMk0+rSQq3H/KdYj3LLcko8yTCz8y5KIvsKxIyAuTN0ZYNnfsZkM+0EvxTwHVA=="
       }
     }
   }

@@ -6,11 +6,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$taskDotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
-$taskDotnet = if ($taskDotnetCommand) { $taskDotnetCommand.Source } else { Join-Path $env:LOCALAPPDATA 'Microsoft/dotnet/dotnet.exe' }
-if (-not (Test-Path -LiteralPath $taskDotnet)) { throw 'Install the .NET SDK specified in global.json first.' }
-$env:DOTNET_ROOT = Split-Path -Parent $taskDotnet
-$env:PATH = $env:DOTNET_ROOT + [IO.Path]::PathSeparator + $env:PATH
+. (Join-Path $PSScriptRoot 'initialize-dotnet.ps1')
 
 Push-Location (Split-Path -Parent $PSScriptRoot)
 try {

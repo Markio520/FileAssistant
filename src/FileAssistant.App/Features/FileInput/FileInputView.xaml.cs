@@ -21,24 +21,39 @@ public sealed partial class FileInputView : UserControl
     private bool choosing;
     public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register(
         nameof(ViewModel), typeof(WorkspaceViewModel), typeof(FileInputView),
-        new PropertyMetadata(null, (owner, _) => ((FileInputView)owner).Bindings.Update()));
+        new PropertyMetadata(null, (owner, _) => { var view = (FileInputView)owner; view.Bindings.Update(); view.UpdateInspector(); }));
     public WorkspaceViewModel ViewModel
     {
         get => (WorkspaceViewModel)GetValue(ViewModelProperty);
         set => SetValue(ViewModelProperty, value);
     }
     public WorkspaceViewModel TaskViewModel => App.Workspace;
+    public static readonly DependencyProperty OperationContentProperty = DependencyProperty.Register(nameof(OperationContent), typeof(UIElement),
+        typeof(FileInputView), new PropertyMetadata(null, (owner, _) => ((FileInputView)owner).UpdateInspector()));
+    public UIElement? OperationContent { get => (UIElement?)GetValue(OperationContentProperty); set => SetValue(OperationContentProperty, value); }
     public event EventHandler? SearchRequested;
     public event EventHandler<FileInputTransferEventArgs>? FilesForCopyRequested;
+    public event EventHandler<FileInputTransferEventArgs>? FilesForConversionRequested;
 
     public FileInputView()
     {
         InitializeComponent();
-        Loaded += (_, _) => Inspector.ShowParameters(ViewModel.IsFunctionInput);
+        Loaded += (_, _) => UpdateInspector();
         KeyDown += Input_KeyDown;
     }
 
+    private void UpdateInspector()
+    {
+        if (IsLoaded && ViewModel is not null) Inspector.ShowParameters(ViewModel.IsFunctionInput, OperationContent);
+    }
+
     public void FocusQuery() => SearchBox.Focus(FocusState.Programmatic);
+    private FileInputColumnWidths ColumnWidths => (FileInputColumnWidths)Resources["FileColumns"];
+    private void FilesViewport_SizeChanged(object sender, SizeChangedEventArgs e) => ColumnWidths.FitViewport(e.NewSize.Width);
+    private void FilesHeader_SizeChanged(object sender, SizeChangedEventArgs e) => FilesHeaderRow.Height = new GridLength(e.NewSize.Height);
+    private void Column_ResizeRequested(object? sender, double delta)
+        => ColumnWidths.Resize((string)((FrameworkElement)sender!).Tag, delta);
+
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput) ViewModel.SearchText = sender.Text;
@@ -60,7 +75,6 @@ public sealed partial class FileInputView : UserControl
         finally { choosing = false; }
     }
 
-    private async void Paste_Click(object sender, RoutedEventArgs e) => await PasteAsync();
     private async Task PasteAsync()
     {
         if (choosing || !ViewModel.CanReceiveFiles) return;
@@ -118,6 +132,10 @@ public sealed partial class FileInputView : UserControl
         .Where(file => file.Source is not null).Select(file => file.Source!).ToArray();
     private void SendSelected_Click(object sender, RoutedEventArgs e) => SendToCopy(SelectedFiles());
     private void SendAll_Click(object sender, RoutedEventArgs e) => SendToCopy(ViewModel.SearchEntries);
+    private void ConvertSelected_Click(object sender, RoutedEventArgs e) => SendToConversion(SelectedFiles());
+    private void ConvertAll_Click(object sender, RoutedEventArgs e) => SendToConversion(ViewModel.SearchEntries);
+    private void SendToConversion(IReadOnlyList<SearchFile> files)
+    { if (files.Count > 0 && ViewModel.CanReceiveFiles) FilesForConversionRequested?.Invoke(this, new(files)); }
     private void SendToCopy(IReadOnlyList<SearchFile> files)
     {
         if (files.Count > 0 && ViewModel.CanReceiveFiles) FilesForCopyRequested?.Invoke(this, new(files));
@@ -147,7 +165,7 @@ public sealed partial class FileInputView : UserControl
             var panel = new StackPanel { Spacing = 12 };
             panel.Children.Add(new TextBlock { Text = "选择要导入的文件。追加到当前列表，重复路径会跳过。", TextWrapping = TextWrapping.Wrap });
             panel.Children.Add(all); panel.Children.Add(list);
-            var dialog = new ContentDialog { Title = "从暂存区导入", Content = panel, XamlRoot = XamlRoot,
+            var dialog = new ContentDialog { Title = "从暂存区导入", Content = panel, XamlRoot = XamlRoot, RequestedTheme = ActualTheme,
                 PrimaryButtonText = "导入选中项（0）", CloseButtonText = "取消", IsPrimaryButtonEnabled = false, DefaultButton = ContentDialogButton.Primary };
             list.SelectionChanged += (_, _) => { dialog.IsPrimaryButtonEnabled = list.SelectedItems.Count > 0;
                 dialog.PrimaryButtonText = $"导入选中项（{list.SelectedItems.Count:N0}）"; };
@@ -164,7 +182,7 @@ public sealed partial class FileInputView : UserControl
         choosing = true;
         try
         {
-            await new ContentDialog { Title = "添加结果明细", XamlRoot = XamlRoot, CloseButtonText = "关闭",
+            await new ContentDialog { Title = "添加结果明细", XamlRoot = XamlRoot, RequestedTheme = ActualTheme, CloseButtonText = "关闭",
                 Content = new ListView { ItemsSource = ViewModel.ImportReport.Items, SelectionMode = ListViewSelectionMode.None,
                     MaxHeight = 420, ItemTemplate = (DataTemplate)Resources["ImportResultTemplate"] } }.ShowAsync();
         }

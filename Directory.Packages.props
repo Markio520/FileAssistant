@@ -4,6 +4,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="Magick.NET-Q16-x64" Version="15.0.0" />
+    <PackageVersion Include="PDFiumCore" Version="157.0.8100" />
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.7.1" />

@@ -1,0 +1,41 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:FileAssistant.App.Controls">
+    <controls:ColumnWidthConverter x:Key="ColumnWidth" />
+    <Style x:Key="ResizeThumbStyle" TargetType="Thumb">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="IsTabStop" Value="True" />
+        <Setter Property="AutomationProperties.HelpText" Value="拖动，或使用左右方向键调整宽度" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb">
+            <Grid Background="Transparent">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                        <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                    </VisualStateGroup>
+                    <VisualStateGroup x:Name="FocusStates">
+                        <VisualState x:Name="Unfocused" />
+                        <VisualState x:Name="PointerFocused" />
+                        <VisualState x:Name="Focused"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Border x:Name="Divider" Width="1" Margin="0,7" Background="{ThemeResource WorkspaceBorderBrush}" />
+            </Grid>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="ResizeHandleStyle" TargetType="controls:ResizeHandle">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="IsTabStop" Value="False" />
+    </Style>
+    <Style x:Key="ColumnResizeHandle" TargetType="controls:ResizeHandle" BasedOn="{StaticResource ResizeHandleStyle}">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0,-9,-6,-9" />
+    </Style>
+</ResourceDictionary>

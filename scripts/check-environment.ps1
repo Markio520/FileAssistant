@@ -2,16 +2,18 @@ $ErrorActionPreference = 'Stop'
 $taskProjectRoot = Split-Path -Parent $PSScriptRoot
 $taskPackageVersions = [xml](Get-Content -LiteralPath (Join-Path $taskProjectRoot 'Directory.Packages.props') -Raw)
 
-$taskDotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
-$taskDotnet = if ($taskDotnetCommand) { $taskDotnetCommand.Source } else { Join-Path $env:LOCALAPPDATA 'Microsoft/dotnet/dotnet.exe' }
-if (-not (Test-Path -LiteralPath $taskDotnet)) { throw 'The .NET SDK is missing. See docs/development-environment.md.' }
-$env:DOTNET_ROOT = Split-Path -Parent $taskDotnet
-$env:PATH = $env:DOTNET_ROOT + [IO.Path]::PathSeparator + $env:PATH
+. (Join-Path $PSScriptRoot 'initialize-dotnet.ps1')
 
 $taskWinAppVersion = $taskPackageVersions.SelectSingleNode("/Project/ItemGroup/PackageVersion[@Include='Microsoft.Windows.SDK.BuildTools.WinApp']").Version
 $taskWinAppCommand = Get-Command winapp -ErrorAction SilentlyContinue
 $taskWinApp = if ($taskWinAppCommand) { $taskWinAppCommand.Source } else { Join-Path $env:LOCALAPPDATA "Microsoft/WinAppCLI/$taskWinAppVersion/winapp.exe" }
-if (-not (Test-Path -LiteralPath $taskWinApp)) { throw 'The standalone WinApp CLI is missing. See docs/development-environment.md.' }
+$taskCacheOutput = & $taskDotnet nuget locals global-packages --list
+if ($LASTEXITCODE -ne 0) { throw 'Could not locate the NuGet package cache.' }
+$taskNuGetRoot = ($taskCacheOutput -split ':', 2)[1].Trim()
+if (-not (Test-Path -LiteralPath $taskWinApp)) {
+    $taskWinApp = Join-Path $taskNuGetRoot "microsoft.windows.sdk.buildtools.winapp/$taskWinAppVersion/tools/win-x64/winapp.exe"
+}
+if (-not (Test-Path -LiteralPath $taskWinApp)) { throw 'The WinApp CLI is missing. Restore the project dependencies first. See docs/development-environment.md.' }
 
 Push-Location $taskProjectRoot
 try {
@@ -21,9 +23,6 @@ try {
     & $taskWinApp --version
     if ($LASTEXITCODE -ne 0) { throw 'WinApp CLI could not start.' }
 
-    $taskCacheOutput = & $taskDotnet nuget locals global-packages --list
-    if ($LASTEXITCODE -ne 0) { throw 'Could not locate the NuGet package cache.' }
-    $taskNuGetRoot = ($taskCacheOutput -split ':', 2)[1].Trim()
     $taskBuildToolsVersion = $taskPackageVersions.SelectSingleNode("/Project/ItemGroup/PackageVersion[@Include='Microsoft.Windows.SDK.BuildTools']").Version
     $taskBuildToolsRoot = Join-Path $taskNuGetRoot "microsoft.windows.sdk.buildtools/$taskBuildToolsVersion"
     foreach ($taskToolName in @('makeappx.exe', 'makepri.exe', 'signtool.exe')) {

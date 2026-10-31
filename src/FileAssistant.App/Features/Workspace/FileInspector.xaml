@@ -3,7 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:FileAssistant.App.Features.Workspace"
-    xmlns:controls="using:FileAssistant.App.Controls">
+    xmlns:controls="using:FileAssistant.App.Controls"
+    xmlns:preview="using:FileAssistant.App.Features.Preview">
     <Pivot x:Name="InspectorTabs" Margin="4,2" AutomationProperties.Name="预览与操作">
         <Pivot.Resources>
             <x:Double x:Key="PivotHeaderItemFontSize">14</x:Double>
@@ -11,16 +12,12 @@
         <PivotItem Header="文件信息" Margin="16,6,16,16">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="20">
-                    <Border Height="168" Background="{ThemeResource WorkspaceAccentSubtleBrush}" CornerRadius="8">
-                        <StackPanel Spacing="18" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <FontIcon Glyph="{x:Bind ViewModel.PreviewGlyph, Mode=OneWay}" FontSize="48" Foreground="{ThemeResource WorkspaceAccentBrush}" />
-                            <TextBlock Text="文件信息" FontSize="12" Foreground="{ThemeResource WorkspaceAccentBrush}" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
+                    <preview:FilePreviewView File="{x:Bind ViewModel.PreviewFile, Mode=OneWay}" Glyph="{x:Bind ViewModel.PreviewGlyph, Mode=OneWay}" />
                     <StackPanel Spacing="8">
                         <TextBlock Text="{x:Bind ViewModel.PreviewName, Mode=OneWay}" FontSize="18" FontWeight="SemiBold"
                             TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                        <TextBlock Text="在列表中选择文件，查看详细信息。" FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
+                        <TextBlock Text="在列表中选择文件，查看详细信息。" Visibility="{x:Bind ViewModel.ShowSelectionHint, Mode=OneWay}"
+                            FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
                     </StackPanel>
                     <StackPanel Spacing="18" Visibility="{x:Bind ViewModel.HasSelection, Mode=OneWay}">
                         <Border Height="1" Background="{ThemeResource WorkspaceBorderBrush}" />
@@ -38,14 +35,15 @@
                             <TextBlock Text="完整路径" Style="{StaticResource WorkspaceCaptionStyle}" />
                             <TextBlock Text="{x:Bind ViewModel.PreviewPath, Mode=OneWay}" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                         </StackPanel>
-                        <TextBlock Text="{x:Bind ViewModel.PreviewOrigin, Mode=OneWay}" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource WorkspaceAccentBrush}" />
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </PivotItem>
         <PivotItem x:Name="ParametersTab" Header="操作参数" Margin="16,6,16,16">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="22">
+                <Grid>
+                <ContentPresenter x:Name="CustomParameters" Visibility="Collapsed" />
+                <StackPanel x:Name="CopyParameters" Spacing="22">
                     <StackPanel Spacing="8">
                         <TextBlock Text="复制文件" FontSize="20" FontWeight="SemiBold" />
                         <TextBlock Text="将文件复制到新位置，保留原文件。" TextWrapping="Wrap" FontSize="13" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
@@ -71,6 +69,7 @@
                         <Button Content="开始复制" Style="{StaticResource AccentButtonStyle}" IsEnabled="False" HorizontalAlignment="Stretch" ToolTipService.ToolTip="复制执行将在后续步骤接入。" />
                     </StackPanel>
                 </StackPanel>
+                </Grid>
             </ScrollViewer>
         </PivotItem>
     </Pivot>
