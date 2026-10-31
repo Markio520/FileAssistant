@@ -193,8 +193,8 @@ public sealed partial class FileInputView : UserControl
     private void FindFiles_Click(object sender, RoutedEventArgs e) => SearchRequested?.Invoke(this, EventArgs.Empty);
     private void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        ViewModel.SelectionCount = FileList.SelectedItems.Count;
-        ViewModel.SelectedFile = e.AddedItems.OfType<WorkspaceFile>().LastOrDefault() ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault();
+        ViewModel.SetSelection(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray(),
+            e.AddedItems.OfType<WorkspaceFile>().LastOrDefault() ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault());
     }
     private void Remove_Click(object sender, RoutedEventArgs e) => RemoveSelection();
     private void Remove_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { RemoveSelection(); args.Handled = true; }

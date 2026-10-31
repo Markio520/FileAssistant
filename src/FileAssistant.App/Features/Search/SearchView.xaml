@@ -71,7 +71,6 @@
                     <controls:SelectionDropDown ItemsSource="{x:Bind local:SearchFilterOptions.Sizes}" SelectedValue="{x:Bind ViewModel.SizeIndex, Mode=TwoWay}" AutomationProperties.Name="文件大小条件" />
                     <controls:SelectionDropDown ItemsSource="{x:Bind local:SearchFilterOptions.Dates}" SelectedValue="{x:Bind ViewModel.DateIndex, Mode=TwoWay}" MinWidth="136" AutomationProperties.Name="修改日期条件" />
                     <CheckBox Content="匹配完整路径" IsChecked="{x:Bind ViewModel.MatchPath, Mode=TwoWay}" Margin="4,0" />
-                    <Button Content="清除条件" Command="{x:Bind ViewModel.ResetFiltersCommand}" />
                     <Button Content="常用条件" ToolTipService.ToolTip="保存或套用范围、关键词、筛选和排序">
                         <Button.Flyout><Flyout Placement="Bottom"><StackPanel Width="336" Spacing="12">
                             <TextBlock Text="常用搜索条件" FontWeight="SemiBold" />
@@ -138,7 +137,10 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <controls:SelectionDropDown Width="160" HorizontalAlignment="Left" ItemsSource="{x:Bind local:SearchFilterOptions.Sorts}"
                             SelectedValue="{x:Bind ViewModel.SortIndex, Mode=TwoWay}" AutomationProperties.Name="搜索结果排序" />
-                        <ToggleButton x:Name="DetailsToggle" Grid.Column="1" Content="文件信息" IsChecked="{x:Bind ViewModel.ShowDetails, Mode=TwoWay}" ToolTipService.ToolTip="显示或收起文件信息侧栏" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Content="清空" Command="{x:Bind ViewModel.ResetFiltersCommand}" AutomationProperties.Name="清空搜索条件" ToolTipService.ToolTip="清空搜索文字和筛选条件，恢复当前范围的全部结果。" />
+                            <ToggleButton x:Name="DetailsToggle" Content="侧栏" IsChecked="{x:Bind ViewModel.ShowDetails, Mode=TwoWay}" AutomationProperties.Name="显示或收起文件信息侧栏" ToolTipService.ToolTip="显示或收起文件信息侧栏" />
+                        </StackPanel>
                     </Grid>
                     <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="2" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
                     <Grid Grid.Row="2">

@@ -19,6 +19,7 @@ public partial class WorkspaceViewModel : ObservableObject
     private readonly IFileInputReader? inputReader;
     private CancellationTokenSource? importCancellation;
     private int importGeneration;
+    private IReadOnlyList<WorkspaceFile> selectedFiles = [];
 
     public WorkspaceViewModel(IFileInputReader? inputReader = null, bool isStaging = true)
         : this(inputReader, isStaging ? WorkspaceInputPurpose.Staging : WorkspaceInputPurpose.Copy) { }
@@ -48,6 +49,15 @@ public partial class WorkspaceViewModel : ObservableObject
 
     public ObservableCollection<WorkspaceFile> VisibleFiles { get; } = [];
     public IReadOnlyList<SearchFile> SearchEntries => files.Where(f => f.Source is not null).Select(f => f.Source!).ToArray();
+    public IReadOnlyList<SearchFile> SelectedEntries => selectedFiles.Where(f => f.Source is not null).Select(f => f.Source!).ToArray();
+
+    public void SetSelection(IReadOnlyList<WorkspaceFile> selection, WorkspaceFile? current = null)
+    {
+        selectedFiles = selection.ToArray();
+        SelectionCount = selectedFiles.Count;
+        SelectedFile = current ?? selectedFiles.LastOrDefault();
+        OnPropertyChanged(nameof(SelectedEntries));
+    }
     public bool HasSamples => files.Any(f => f.IsSample);
     public string BatchOrigin => HasSamples ? "示例文件 · 不读取本地文件" : IsStaging ? "暂存引用 · 不改动原件" : "独立输入 · 不自动加入暂存区";
     public string PreviewOrigin => SelectedFile?.IsSample != false ? "示例信息 · 未读取文件内容" : "真实文件信息 · 未加载内容预览";
@@ -253,8 +263,7 @@ public partial class WorkspaceViewModel : ObservableObject
 
     private void ApplyFilters()
     {
-        SelectedFile = null;
-        SelectionCount = 0;
+        SetSelection([]);
         VisibleFiles.Clear();
         var query = SearchText.Trim();
         var typeFilter = SearchRules.Compile(new SearchRequest { Kind = (SearchKind)FilterIndex });

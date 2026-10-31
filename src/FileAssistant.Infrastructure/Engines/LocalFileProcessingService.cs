@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using FileAssistant.Core.Engines;
 using FileAssistant.Infrastructure.Engines.Images;
+using FileAssistant.Infrastructure.Engines.Documents;
 using FileAssistant.Infrastructure.Engines.Media;
 using FileAssistant.Infrastructure.Engines.Pdf;
 using ImageMagick;
@@ -19,12 +20,14 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     public IReadOnlyList<ProcessingEngineInfo> Engines =>
     [
         Describe("magick", "Magick.NET", typeof(MagickImage), "图片预览、图片格式转换", () => _ = MagickNET.Version),
-        new("ffmpeg", "FFmpeg", EnginePackageCatalog.Ffmpeg.Version, "视频首帧", FfmpegReady(), Path.GetDirectoryName(paths.FfmpegExecutable)!),
+        new("ffmpeg", "FFmpeg", EnginePackageCatalog.Ffmpeg.Version, "视频首帧、音频与视频格式转换", FfmpegReady(), Path.GetDirectoryName(paths.FfmpegExecutable)!),
+        new("libreoffice", "LibreOffice 文档引擎", EnginePackageCatalog.LibreOffice.Version, "DOC/DOCX/ODT/RTF/TXT 互转与 PDF 输出（按需下载）",
+            paths.OfficeExecutable is { } office && File.Exists(office), paths.OfficeExecutable ?? "设置 → 引擎管理 → 下载文档引擎"),
         Describe("pdfium", "PDFium / PDFiumCore", typeof(PDFiumCore.fpdfview), "PDF 首页预览、页面导出图片", PdfiumEngine.EnsureAvailable),
         Describe("pdfpig", "PdfPig", typeof(UglyToad.PdfPig.Writer.PdfDocumentBuilder), "图片生成 PDF")
     ];
 
-    private bool FfmpegReady() => new[] { "ffmpeg.exe", "avcodec-62.dll", "avdevice-62.dll", "avfilter-11.dll", "avformat-62.dll", "avutil-60.dll", "swresample-6.dll", "swscale-9.dll" }
+    private bool FfmpegReady() => new[] { "ffmpeg.exe", "ffprobe.exe", "avcodec-62.dll", "avdevice-62.dll", "avfilter-11.dll", "avformat-62.dll", "avutil-60.dll", "swresample-6.dll", "swscale-9.dll" }
         .All(name => File.Exists(Path.Combine(Path.GetDirectoryName(paths.FfmpegExecutable)!, name)));
     private static ProcessingEngineInfo Describe(string id, string name, Type type, string capabilities, Action? check = null)
     {
@@ -59,7 +62,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                 }
                 var kind = extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase) ? PreviewKind.Pdf :
                     FfmpegEngine.Extensions.Contains(extension) ? PreviewKind.Video :
-                    MagickImageEngine.Extensions.Contains(extension) ? PreviewKind.Image : PreviewKind.Unsupported;
+                    ConversionCapabilities.IsImage(path) ? PreviewKind.Image : PreviewKind.Unsupported;
                 if (kind == PreviewKind.Unsupported) return new PreviewResult(kind, Message: "暂不支持此格式的内容预览。");
                 Directory.CreateDirectory(paths.CacheDirectory);
                 var key = System.Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{stamp.Path}|{stamp.Length}|{stamp.ModifiedUtcTicks}|{maximumEdge}|preview-v1")));
@@ -101,7 +104,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     }
 
     public Task<ConversionPlan> CreatePlanAsync(ConversionRequest request, CancellationToken token)
-        => Task.Run(() =>
+        => Task.Run(async () =>
         {
             token.ThrowIfCancellationRequested();
             var sources = new List<ProcessingSource>();
@@ -118,10 +121,18 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                     var source = Stamp(path);
                     if (Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
                         source = source with { PdfPages = PdfiumEngine.PageCount(path) };
-                    else if (!MagickImageEngine.Extensions.Contains(Path.GetExtension(path)))
-                        source = source with { Error = "当前转换支持图片和 PDF，暂不接受此格式。" };
+                    else if (ConversionCapabilities.IsDocument(path))
+                    {
+                        if (paths.OfficeExecutable is not { } office || !File.Exists(office))
+                            source = source with { Error = "文档引擎尚未安装，请前往设置 → 引擎管理下载 LibreOffice。" };
+                    }
+                    else if (ConversionCapabilities.IsAudio(path) || ConversionCapabilities.IsVideo(path))
+                        await new FfmpegConverter(paths.FfmpegExecutable).CheckAsync(path, token);
+                    else if (!ConversionCapabilities.IsImage(path))
+                        source = source with { Error = "当前尚未接入此文件格式。" };
                     sources.Add(source);
                 }
+                catch (OperationCanceledException) { throw; }
                 catch (Exception error) { sources.Add(new(path, 0, 0, Error: Friendly(error).Message)); }
             }
             return ConversionPlanner.Create(request with { Paths = request.Paths.ToArray(), OutputDirectory = LocalPath(request.OutputDirectory) },
@@ -131,15 +142,17 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     public async Task<ConversionReport> ConvertAsync(ConversionPlan plan, IProgress<ProcessingProgress>? progress, CancellationToken token)
     {
         await conversionGate.WaitAsync(token);
-        try { return await Task.Run(() => Convert(plan, progress, token), CancellationToken.None); }
+        try { return await Task.Run(() => ConvertAsyncCore(plan, progress, token), CancellationToken.None); }
         finally { conversionGate.Release(); }
     }
 
-    private static ConversionReport Convert(ConversionPlan plan, IProgress<ProcessingProgress>? progress, CancellationToken token)
+    private async Task<ConversionReport> ConvertAsyncCore(ConversionPlan plan, IProgress<ProcessingProgress>? progress, CancellationToken token)
     {
         var results = new List<ConversionItemResult>();
         var directory = LocalPath(plan.Request.OutputDirectory);
         var completed = 0;
+        var media = new FfmpegConverter(paths.FfmpegExecutable);
+        var office = paths.OfficeExecutable;
         foreach (var item in plan.Items)
         {
             if (!item.CanRun) { results.Add(new(item, null, item.Error ?? "项目不能转换。")); continue; }
@@ -152,10 +165,19 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                     item.Sources.Any(source => string.Equals(source.Path, target, StringComparison.OrdinalIgnoreCase)))
                     throw new FileProcessingException("输出路径不属于此转换计划，已停止此项。");
                 foreach (var source in item.Sources) Verify(source);
+                if (item.Sources.Count == 0 || item.Sources.Any(source => !ConversionCapabilities.GetTargets(source.Path, includeSameFormat: true).Contains(plan.Request.Target)))
+                    throw new FileProcessingException("此文件不能转换为所选格式，请重新预览计划。");
                 if (File.Exists(target) || Directory.Exists(target)) throw new FileProcessingException("输出位置已被其他文件占用，请重新预览计划。");
                 Directory.CreateDirectory(directory);
                 progress?.Report(new(completed, plan.ReadyCount, $"正在转换 {item.SourceLabel}"));
-                using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                if (ConversionCapabilities.IsDocument(item.Sources[0].Path))
+                {
+                    if (office is null) throw new FileProcessingException("文档引擎尚未安装，请前往设置 → 引擎管理。");
+                    await new LibreOfficeEngine(office).ConvertAsync(item.Sources[0].Path, temporary, plan.Request.Target, token);
+                }
+                else if (ConversionCapabilities.IsAudioTarget(plan.Request.Target) || ConversionCapabilities.IsVideoTarget(plan.Request.Target))
+                    await media.ConvertAsync(item.Sources[0].Path, temporary, plan.Request.Target, token);
+                else using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     if (plan.Request.Target == ConversionTarget.Pdf) PdfPigEngine.Create(item.Sources, stream, token);
                     else

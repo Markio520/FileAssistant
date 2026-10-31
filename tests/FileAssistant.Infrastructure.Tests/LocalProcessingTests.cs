@@ -38,7 +38,7 @@ public sealed class LocalProcessingTests : IDisposable
         var preview = await service.PreviewAsync(source, 256, default);
         Assert.Equal(PreviewKind.Image, preview.Kind);
         using (var decoded = new MagickImage(preview.Png!)) { Assert.Equal(80u, decoded.Width); Assert.Equal(40u, decoded.Height); }
-        foreach (var target in new[] { ConversionTarget.Png, ConversionTarget.Jpeg, ConversionTarget.WebP, ConversionTarget.Bmp })
+        foreach (var target in new[] { ConversionTarget.Png, ConversionTarget.Jpeg, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif })
         {
             var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, target.ToString()), target), default);
             Assert.False(Directory.Exists(plan.Request.OutputDirectory));
@@ -48,8 +48,37 @@ public sealed class LocalProcessingTests : IDisposable
             Assert.Equal(80u, decoded.Width);
             Assert.Equal(40u, decoded.Height);
             Assert.NotEqual(source, output.FullPath);
+            var previewOutput = await service.PreviewAsync(output.FullPath, 128, default);
+            Assert.Equal(PreviewKind.Image, previewOutput.Kind);
         }
         Assert.Equal(original, SHA256.HashData(await File.ReadAllBytesAsync(source)));
+    }
+
+    [Theory]
+    [InlineData(ConversionTarget.Tiff)]
+    [InlineData(ConversionTarget.Gif)]
+    [InlineData(ConversionTarget.Avif)]
+    public async Task Pdf_pages_can_use_the_new_image_encoders(ConversionTarget target)
+    {
+        var source = Image("source.png");
+        var pdfPlan = await service.CreatePlanAsync(new([source], Path.Combine(root, "pdf"), ConversionTarget.Pdf), default);
+        var pdf = Assert.Single((await service.ConvertAsync(pdfPlan, null, default)).Outputs);
+        var hash = SHA256.HashData(await File.ReadAllBytesAsync(pdf.FullPath));
+        var plan = await service.CreatePlanAsync(new([pdf.FullPath], Path.Combine(root, "pages"), target, PdfDpi: 72), default);
+        var output = Assert.Single((await service.ConvertAsync(plan, null, default)).Outputs);
+        Assert.Equal(ConversionCapabilities.Extension(target), Path.GetExtension(output.FullPath));
+        Assert.Equal(PreviewKind.Image, (await service.PreviewAsync(output.FullPath, 128, default)).Kind);
+        Assert.Equal(hash, SHA256.HashData(await File.ReadAllBytesAsync(pdf.FullPath)));
+    }
+
+    [Fact]
+    public async Task Missing_document_engine_is_reported_without_creating_an_installation_or_output()
+    {
+        var source = Path.Combine(root, "notes.txt"); await File.WriteAllTextAsync(source, "text");
+        var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, "out"), ConversionTarget.Docx), default);
+        Assert.Equal(0, plan.ReadyCount); Assert.Equal(1, plan.RejectedCount);
+        Assert.Contains("文档引擎", plan.Items[0].Error);
+        Assert.False(Directory.Exists(plan.Request.OutputDirectory));
     }
 
     [Fact]
@@ -112,6 +141,28 @@ public sealed class LocalProcessingTests : IDisposable
         Assert.Single(report.Outputs);
         Assert.Empty(Directory.GetFiles(plan.Request.OutputDirectory, "*.tmp"));
         Assert.True(File.Exists(first)); Assert.True(File.Exists(second));
+    }
+
+    [Fact]
+    public async Task Mixed_png_and_webp_convert_to_real_jpegs_without_changing_the_sources()
+    {
+        var png = Image("输入.png");
+        var webp = Path.Combine(root, "输入.webp");
+        using (var image = new MagickImage(MagickColors.Blue, 64, 40)) image.Write(webp, MagickFormat.WebP);
+        var originals = new[] { SHA256.HashData(await File.ReadAllBytesAsync(png)), SHA256.HashData(await File.ReadAllBytesAsync(webp)) };
+        Assert.Contains(ConversionTarget.Jpeg, ConversionCapabilities.GetCommonTargets([png, webp]));
+        var plan = await service.CreatePlanAsync(new([png, webp], Path.Combine(root, "mixed"), ConversionTarget.Jpeg), default);
+        var report = await service.ConvertAsync(plan, null, default);
+        Assert.Equal(2, report.Outputs.Count);
+        Assert.NotEqual(report.Outputs[0].FullPath, report.Outputs[1].FullPath);
+        foreach (var output in report.Outputs)
+        {
+            using var image = new MagickImage(output.FullPath);
+            Assert.Equal(MagickFormat.Jpeg, image.Format);
+            Assert.Single(output.SourcePaths);
+        }
+        Assert.Equal(originals[0], SHA256.HashData(await File.ReadAllBytesAsync(png)));
+        Assert.Equal(originals[1], SHA256.HashData(await File.ReadAllBytesAsync(webp)));
     }
 
     [Fact]

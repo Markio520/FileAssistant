@@ -20,7 +20,7 @@ public sealed class EnginePackageInstaller(HttpClient client, string enginesDire
             throw new FileProcessingException("引擎下载清单无效。");
         await gate.WaitAsync(token);
         var staging = Path.Combine(enginesDirectory, ".installing-" + Guid.NewGuid().ToString("N"));
-        var archivePath = staging + ".zip";
+        var archivePath = staging + (package.ArchiveKind == EngineArchiveKind.WindowsInstaller ? ".msi" : ".zip");
         try
         {
             Directory.CreateDirectory(staging);
@@ -44,6 +44,19 @@ public sealed class EnginePackageInstaller(HttpClient client, string enginesDire
                 if (!CryptographicOperations.FixedTimeEquals(hash.GetHashAndReset(), System.Convert.FromHexString(package.Sha256)))
                     throw new FileProcessingException("引擎校验失败，下载未安装，请重试。");
             }
+            if (package.ArchiveKind == EngineArchiveKind.WindowsInstaller)
+            {
+                progress?.Report(90);
+                // Administrative extraction creates a private runtime layout; it does not register/install Office globally.
+                // Let Windows Installer finish before cleaning up on cancel, so its service cannot keep writing into staging.
+                await LocalEngineProcess.RunAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "msiexec.exe"),
+                    ["/a", archivePath, "/qn", "/norestart", "TARGETDIR=" + Path.GetFullPath(staging)], TimeSpan.FromMinutes(15), CancellationToken.None,
+                    "无法解包文档引擎，请检查磁盘空间或稍后重试。");
+                token.ThrowIfCancellationRequested();
+                var copiedInstaller = Path.Combine(staging, Path.GetFileName(archivePath));
+                if (File.Exists(copiedInstaller)) File.Delete(copiedInstaller);
+            }
+            else if (package.ArchiveKind == EngineArchiveKind.Zip)
             using (var zip = ZipFile.OpenRead(archivePath))
             {
                 if (zip.Entries.Count > 30_000 || zip.Entries.Sum(entry => entry.Length) > MaximumExtractedSize)
@@ -67,6 +80,7 @@ public sealed class EnginePackageInstaller(HttpClient client, string enginesDire
                     await input.CopyToAsync(output, token);
                 }
             }
+            else throw new FileProcessingException("不支持此引擎包类型。");
             if (!File.Exists(ChildPath(staging, package.Executable))) throw new FileProcessingException("引擎包缺少执行组件。");
             progress?.Report(95); token.ThrowIfCancellationRequested();
             var relativeDirectory = Path.Combine(package.Id, package.Version, Guid.NewGuid().ToString("N"));

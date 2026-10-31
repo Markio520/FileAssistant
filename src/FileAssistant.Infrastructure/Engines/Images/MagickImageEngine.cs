@@ -5,9 +5,6 @@ namespace FileAssistant.Infrastructure.Engines.Images;
 
 internal static class MagickImageEngine
 {
-    internal static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".ico", ".avif", ".heic", ".heif" };
-
     internal static MagickImage Read(string path)
     {
         using var input = File.OpenRead(path);
@@ -54,7 +51,11 @@ internal static class MagickImageEngine
             ConversionTarget.Jpeg => MagickFormat.Jpeg,
             ConversionTarget.WebP => MagickFormat.WebP,
             ConversionTarget.Bmp => MagickFormat.Bmp,
-            _ => MagickFormat.Png
+            ConversionTarget.Png => MagickFormat.Png,
+            ConversionTarget.Tiff => MagickFormat.Tiff,
+            ConversionTarget.Gif => MagickFormat.Gif,
+            ConversionTarget.Avif => MagickFormat.Avif,
+            _ => throw new FileProcessingException("此目标不是图片格式。")
         });
     }
 }

@@ -3,16 +3,19 @@
     xmlns:local="using:FileAssistant.App.Features.Convert" xmlns:controls="using:FileAssistant.App.Controls" xmlns:engines="using:FileAssistant.Core.Engines">
     <StackPanel Spacing="14">
         <TextBlock Text="本地格式转换" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{x:Bind ViewModel.ScopeSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" ToolTipService.ToolTip="列表筛选只影响显示；未选择文件时，使用整个输入列表。" />
         <StackPanel Spacing="6">
             <TextBlock Text="输出格式" />
-            <controls:SelectionDropDown ItemsSource="{x:Bind local:ConversionViewModel.Formats}" SelectedValue="{x:Bind ViewModel.FormatIndex, Mode=TwoWay}"
-                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="转换输出格式" />
+            <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Formats, Mode=OneWay}" SelectedValue="{x:Bind ViewModel.TargetFormatValue, Mode=TwoWay}"
+                ButtonContent="{x:Bind ViewModel.FormatButtonContent, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanSelectFormat, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="转换输出格式" />
+            <InfoBar IsOpen="{x:Bind ViewModel.HasFormatError, Mode=OneWay}" IsClosable="False" Severity="Warning" Message="{x:Bind ViewModel.FormatFeedback, Mode=OneWay}" />
+            <Button Content="前往引擎管理" Command="{x:Bind ViewModel.OpenEngineManagementCommand}" Visibility="{x:Bind ViewModel.HasMissingEngine, Mode=OneWay}" HorizontalAlignment="Stretch" />
             <TextBox Header="输出文件夹" Text="{x:Bind ViewModel.OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" TextWrapping="Wrap" AutomationProperties.Name="转换输出文件夹" />
             <Button Content="选择输出文件夹…" Click="PickOutput_Click" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalAlignment="Stretch" />
-            <NumberBox Header="JPEG / WebP 质量（1–100）" Minimum="1" Maximum="100" Value="{x:Bind ViewModel.Quality, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
-            <NumberBox Header="PDF 导出分辨率（DPI）" Minimum="72" Maximum="600" Value="{x:Bind ViewModel.PdfDpi, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+            <NumberBox Header="JPEG / WebP / AVIF 质量（1–100）" Minimum="1" Maximum="100" Value="{x:Bind ViewModel.Quality, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" Visibility="{x:Bind ViewModel.ShowQuality, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+            <NumberBox Header="PDF 导出分辨率（DPI）" Minimum="72" Maximum="600" Value="{x:Bind ViewModel.PdfDpi, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" Visibility="{x:Bind ViewModel.ShowPdfDpi, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
         </StackPanel>
-        <TextBlock Text="图片合成 PDF：按列表顺序，一图一页。JPEG / BMP 的透明区域使用白色背景。" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
+        <TextBlock Text="{x:Bind ViewModel.ConversionNote, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
         <Button Content="预览转换计划" Command="{x:Bind ViewModel.BuildPlanCommand}" HorizontalAlignment="Stretch" />
         <TextBlock Text="{x:Bind ViewModel.PlanSummary, Mode=OneWay}" TextWrapping="Wrap" FontSize="12" />
         <ListView ItemsSource="{x:Bind ViewModel.Plan.Items, Mode=OneWay}" SelectionMode="None" MaxHeight="160" Padding="0" AutomationProperties.Name="转换计划">

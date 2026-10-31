@@ -17,9 +17,11 @@
             </DataTemplate></ListView.ItemTemplate>
         </ListView>
         <StackPanel Grid.Row="3" Spacing="8">
-            <TextBlock Text="常用引擎随软件提供。视频组件缺失时，可在此重新获取，安装后直接使用。" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}"/>
+            <TextBlock Text="图片与音视频引擎随软件提供。文档引擎按需下载，安装后可在本机转换。" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}"/>
             <TextBlock Text="{x:Bind ViewModel.DownloadDescription}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}"/>
             <StackPanel Orientation="Horizontal" Spacing="10"><Button Content="下载或修复视频引擎" Command="{x:Bind ViewModel.DownloadVideoCommand}"/><Button Content="取消下载" Command="{x:Bind ViewModel.CancelCommand}" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}"/><Button Content="重新检查" Command="{x:Bind ViewModel.RefreshCommand}"/></StackPanel>
+            <TextBlock Text="{x:Bind ViewModel.OfficeDownloadDescription}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}"/>
+            <Button Content="下载或修复文档引擎" Command="{x:Bind ViewModel.DownloadOfficeCommand}" />
             <ProgressBar Value="{x:Bind ViewModel.Progress, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}"/>
             <TextBlock Text="{x:Bind ViewModel.Feedback, Mode=OneWay}" TextWrapping="Wrap" FontSize="12"/>
         </StackPanel>

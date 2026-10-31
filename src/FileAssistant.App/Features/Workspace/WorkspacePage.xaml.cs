@@ -15,6 +15,7 @@ public sealed partial class WorkspacePage : Page
     {
         InitializeComponent();
         App.Conversion.OutputsRequested += (_, task) => { App.Outputs.TaskId = task; Navigation.SelectedItem = OutputsNavigation; };
+        App.Conversion.EngineManagementRequested += (_, _) => Navigation.SelectedItem = SettingsNavigation;
         KeyboardAccelerators.Add(new KeyboardAccelerator { Key = Windows.System.VirtualKey.F, Modifiers = Windows.System.VirtualKeyModifiers.Control });
         KeyboardAccelerators[^1].Invoked += (_, args) =>
         {
@@ -44,6 +45,7 @@ public sealed partial class WorkspacePage : Page
             OutputsPanel.Visibility = outputs ? Visibility.Visible : Visibility.Collapsed;
             SettingsPanel.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
             if (searching) SearchPanel.Activate();
+            if (converting) App.Conversion.RefreshCapabilities();
         }
     }
 

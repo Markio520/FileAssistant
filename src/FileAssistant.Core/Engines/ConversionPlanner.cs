@@ -25,19 +25,21 @@ public static class ConversionPlanner
             reserved.Add(candidate);
             return candidate;
         }
-        var eligible = sources.Where(source => source.Error is null).ToArray();
+        var eligible = sources.Where(source => source.Error is null && ConversionCapabilities.GetTargets(source.Path, includeSameFormat: true).Contains(request.Target)).ToArray();
         foreach (var source in sources.Where(source => source.Error is not null))
             items.Add(new([source], null, Error: source.Error));
+        foreach (var source in sources.Where(source => source.Error is null && !eligible.Contains(source)))
+            items.Add(new([source], null, Error: "此文件不能转换为所选格式，请按类型分批转换。"));
         if (request.Target == ConversionTarget.Pdf)
         {
-            foreach (var pdf in eligible.Where(source => source.PdfPages > 0))
-                items.Add(new([pdf], null, Error: "生成 PDF 当前只接受图片；PDF 可导出为图片。"));
-            var images = eligible.Where(source => source.PdfPages == 0).ToArray();
+            foreach (var document in eligible.Where(source => ConversionCapabilities.IsDocument(source.Path)))
+                items.Add(new([document], Reserve(Path.GetFileNameWithoutExtension(document.Path) + ".pdf")));
+            var images = eligible.Where(source => ConversionCapabilities.IsImage(source.Path)).ToArray();
             if (images.Length > 0) items.Add(new(images, Reserve("合并图片.pdf")));
         }
         else
         {
-            var extension = request.Target switch { ConversionTarget.Jpeg => ".jpg", ConversionTarget.WebP => ".webp", ConversionTarget.Bmp => ".bmp", _ => ".png" };
+            var extension = ConversionCapabilities.Extension(request.Target);
             foreach (var source in eligible)
             {
                 var stem = Path.GetFileNameWithoutExtension(source.Path);

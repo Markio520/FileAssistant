@@ -48,7 +48,7 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="设置" Tag="settings">
+                <NavigationViewItem x:Name="SettingsNavigation" Content="设置" Tag="settings">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="任务队列" Tag="tasks" SelectsOnInvoked="False">

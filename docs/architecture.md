@@ -98,6 +98,10 @@ FileAssistant/
 
 ### 目录职责补充
 
+- 常见转换共用原有计划、原件校验、临时输出与原子提交；`Infrastructure/Engines/Documents/LibreOfficeEngine` 隔离用户文件和 Office 配置，`Media/FfmpegConverter` 探测实际流并按固定容器/编码组合转换，`LocalEngineProcess` 统一参数列表、无界面启动、超时与取消。`EnginePackageInstaller` 支持已校验 ZIP 及官方 MSI 的私有行政解包，原子切换安装指针；设置负责用户触发的按需安装，成功后刷新转换能力，不自动开始任务。
+
+- 转换能力表在 Core `Engines/ConversionCapabilities`：共享图片输入类型，按文件方向计算输出交集；转换 ViewModel 只把真实能力映射成动态 `SelectionOption`，值保持为 `ConversionTarget`。`WorkspaceViewModel.SetSelection` 提供完整选择快照，转换按“已选优先、无选择则全部”生成同一批次的格式菜单、预览和执行计划，PDF 保持列表顺序。选中项变化和过期计划由 ViewModel 隔离，不在页面中复制格式规则。
+
 - 表格列宽和右侧栏共用 `Controls/ResizeHandle` 的原生 Thumb、左右键与横向光标，外观统一放在 `Resources/ResizeControls.xaml`，网格宽度转换器位于 `Controls/ColumnWidthConverter`。`Controls/ResizablePane` 负责右侧栏的宽度边界、收起及恢复，窗口缩小时限制实际宽度但保留用户偏好。搜索列宽仍由 `SearchColumnWidths` 管理并沿用持久化；输入表的三列由每个 `FileInputView` 独有的 `FileInputColumnWidths` 管理，表头和行共享绑定，横向滚动同步。暂存区、复制、转换通过共用输入视图接入，输出区也复用同一侧栏容器。侧栏宽度与新增输入列宽本轮仅保存在当前页面实例中。
 
 - 单选下拉的公共行为放在 `App/Controls/SelectionDropDown.cs`，选项类型 `SelectionOption` 不依赖 WinUI。搜索与工作区的类型选项共用 `Features/FileInput/FileTypeFilterOptions`，过滤均复用 Core 的 `SearchRules`；其余业务选项分别放在 `SearchFilterOptions`、`WorkspaceSelectionOptions`。页面只绑定稳定的选项值，不用菜单顺序或字符串 Tag 推断业务值。
@@ -111,7 +115,7 @@ FileAssistant/
 - `src` 只放源码和构建所需资源；测试程序放 `tests`。
 - 已有产品方案保留在根目录，后续架构和专项说明放 `docs`，避免复制多份同一规范。
 - NuGet 依赖通过包管理还原，不手工把 DLL 散落到源码目录。
-- 独立转换引擎按基础/扩展能力分层：基础包走固定版本打包，扩展包由用户在设置中按需下载，匹配架构并校验完整性后安装到应用数据目录。运行中任务固定使用已选引擎版本；引擎管理与文件处理分开，下载完成不自动开始转换。其许可证和版本信息放 `third-party`，按需下载不替代许可核对。此为后续实现规范，当前尚无转换引擎管理实现。
+- 独立转换引擎按基础/扩展能力分层：基础包走固定版本打包，扩展包由用户在设置中按需下载，匹配架构并校验完整性后安装到应用数据目录。运行中任务固定使用已选引擎版本；引擎管理与文件处理分开，下载完成不自动开始转换。其许可证和版本信息放 `third-party`，按需下载不替代许可核对。当前引擎管理支持 FFmpeg 修复及 LibreOffice 按需包，细节见 `engines/README.md`。
 - `bin`、`obj`、`.vs`、`TestResults` 和 `artifacts` 等构建或本机输出纳入忽略规则。
 - 日志、缓存、数据库、下载的引擎使用 Windows 应用数据目录；用户处理结果使用用户选择的位置，不写进源码或安装目录。
 - MSIX 清单只维护一处。`packaging` 保存额外发布配置，实际安装包输出到 `artifacts`。

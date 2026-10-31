@@ -96,10 +96,11 @@ public partial class App : Application
         CopyInput = new(inputReader, isStaging: false);
         FileProcessing = new Infrastructure.Engines.LocalFileProcessingService(Infrastructure.Engines.EnginePaths.Installed);
         EngineSettings = new(FileProcessing, new Infrastructure.Engines.EnginePackageInstaller(new HttpClient { Timeout = TimeSpan.FromMinutes(10) },
-            Infrastructure.Engines.EnginePaths.ExtensionsDirectory), Infrastructure.Engines.EnginePackageCatalog.Ffmpeg);
+            Infrastructure.Engines.EnginePaths.ExtensionsDirectory), Infrastructure.Engines.EnginePackageCatalog.Ffmpeg, Infrastructure.Engines.EnginePackageCatalog.LibreOffice);
         Jobs = new();
         Outputs = new(new Infrastructure.Windows.WindowsFileInteraction());
         Conversion = new(FileProcessing, new(inputReader, Features.Workspace.WorkspaceInputPurpose.Conversion), Outputs, Jobs);
+        EngineSettings.AvailabilityChanged += (_, _) => Conversion.RefreshCapabilities();
         indexRuntime = new(Infrastructure.Windows.EverythingDistribution.BundledExecutable,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Search", "Everything-1.4"), instance);
         var searchService = new Infrastructure.FileSystem.FileSearchService(

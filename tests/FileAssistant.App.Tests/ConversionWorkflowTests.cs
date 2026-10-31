@@ -16,6 +16,184 @@ public sealed class ConversionWorkflowTests
     private readonly ProcessingJobsViewModel jobs = new();
 
     [Fact]
+    public async Task Missing_optional_engine_has_an_install_entry_and_refresh_enables_document_targets()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.docx", false, 1, null), new(@"C:\test\two.txt", false, 1, null)]);
+        Assert.True(vm.HasMissingEngine); Assert.Empty(vm.Formats); Assert.False(vm.CanBuildPlan);
+        var requested = false; vm.EngineManagementRequested += (_, _) => requested = true;
+        vm.OpenEngineManagementCommand.Execute(null); Assert.True(requested);
+        service.Engines = [new("libreoffice", "Office", "test", "documents", true, "test")];
+        vm.RefreshCapabilities();
+        Assert.False(vm.HasMissingEngine); Assert.True(vm.CanBuildPlan);
+        Assert.Equal([(int)ConversionTarget.Pdf, (int)ConversionTarget.Doc, (int)ConversionTarget.Odt, (int)ConversionTarget.Rtf], vm.Formats.Select(option => option.Value));
+        Assert.Equal("PDF", vm.Formats[0].Label);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal(2, service.Request!.Paths.Count);
+    }
+
+    [Fact]
+    public void Media_menus_require_the_engine_and_do_not_mix_audio_with_video()
+    {
+        service.Engines = [new("ffmpeg", "FFmpeg", "test", "media", true, "test")];
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.mp3", false, 1, null), new(@"C:\test\two.wav", false, 1, null)]);
+        Assert.Equal([(int)ConversionTarget.Flac, (int)ConversionTarget.M4a, (int)ConversionTarget.Aac, (int)ConversionTarget.Ogg], vm.Formats.Select(option => option.Value));
+        input.AddSearchFiles([new(@"C:\test\three.mp4", false, 1, null)]);
+        Assert.Empty(vm.Formats); Assert.False(vm.HasMissingEngine);
+        input.SetSelection([input.VisibleFiles[2]]);
+        Assert.Equal([(int)ConversionTarget.Mkv, (int)ConversionTarget.Mov, (int)ConversionTarget.WebM], vm.Formats.Select(option => option.Value));
+    }
+
+    [Fact]
+    public async Task Empty_and_unsupported_inputs_cannot_build_or_execute_a_plan()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        Assert.Empty(vm.Formats);
+        Assert.False(vm.CanBuildPlan);
+        Assert.Equal(-1, vm.TargetFormatValue);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Null(service.Request);
+        input.AddSearchFiles([new(@"C:\test\archive.zip", false, 1, null)]);
+        Assert.Empty(vm.Formats);
+        Assert.True(vm.HasFormatError);
+        Assert.Contains("ZIP", vm.FormatFeedback);
+        Assert.False(vm.BuildPlanCommand.CanExecute(null));
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Null(service.Request);
+        Assert.Empty(jobs.Items);
+    }
+
+    [Fact]
+    public async Task Mixed_images_use_stable_target_values_and_preserve_a_still_valid_choice()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null)]);
+        Assert.DoesNotContain(vm.Formats, option => option.Value == (int)ConversionTarget.Png);
+        Assert.Equal((int)ConversionTarget.Jpeg, vm.TargetFormatValue);
+        vm.TargetFormatValue = (int)ConversionTarget.Bmp;
+        input.AddSearchFiles([new(@"C:\test\two.webp", false, 1, null)]);
+        Assert.Equal([(int)ConversionTarget.Jpeg, (int)ConversionTarget.Bmp, (int)ConversionTarget.Pdf, (int)ConversionTarget.Tiff, (int)ConversionTarget.Gif, (int)ConversionTarget.Avif], vm.Formats.Select(option => option.Value));
+        Assert.Equal((int)ConversionTarget.Bmp, vm.TargetFormatValue);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal(ConversionTarget.Bmp, service.Request!.Target);
+        Assert.Equal(2, service.Request.Paths.Count);
+        input.AddSearchFiles([new(@"C:\test\three.bmp", false, 1, null)]);
+        Assert.Equal((int)ConversionTarget.Jpeg, vm.TargetFormatValue);
+        Assert.Null(vm.Plan);
+    }
+
+    [Fact]
+    public async Task Selected_images_ignore_unselected_documents_and_keep_input_list_order()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null), new(@"C:\test\notes.docx", false, 1, null),
+            new(@"C:\test\two.webp", false, 1, null)]);
+        Assert.Empty(vm.Formats);
+        Assert.Contains("分开选择", vm.FormatFeedback);
+        var first = input.VisibleFiles[0]; var second = input.VisibleFiles[2];
+        input.SetSelection([second, first]);
+        Assert.True(vm.CanBuildPlan);
+        Assert.Equal("仅转换已选 2 项。", vm.ScopeSummary);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal([first.FullPath, second.FullPath], service.Request!.Paths);
+        Assert.Equal(ConversionTarget.Jpeg, service.Request.Target);
+        await vm.RunCommand.ExecuteAsync(null);
+        Assert.Equal([first.FullPath, second.FullPath], Assert.Single(outputs.VisibleFiles).Result.SourcePaths);
+        input.SetSelection([]);
+        Assert.Empty(vm.Formats);
+        Assert.Null(vm.Plan);
+        Assert.False(vm.CanRun);
+        Assert.Contains("全部 3 项", vm.ScopeSummary);
+    }
+
+    [Fact]
+    public async Task Only_parameters_relevant_to_the_selected_conversion_are_used()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\page.pdf", false, 1, null)]);
+        Assert.True(vm.ShowPdfDpi);
+        Assert.False(vm.ShowQuality);
+        Assert.DoesNotContain(vm.Formats, option => option.Value == (int)ConversionTarget.Pdf);
+        input.ClearCommand.Execute(null);
+        input.AddSearchFiles([new(@"C:\test\image.png", false, 1, null)]);
+        vm.TargetFormatValue = (int)ConversionTarget.Bmp;
+        vm.Quality = double.NaN; vm.PdfDpi = double.NaN;
+        Assert.False(vm.ShowQuality);
+        Assert.False(vm.ShowPdfDpi);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.True(vm.CanRun);
+        Assert.Equal(90, service.Request!.Quality);
+        Assert.Equal(150, service.Request.PdfDpi);
+    }
+
+    [Fact]
+    public async Task Changing_selection_with_the_same_count_invalidates_the_plan()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null), new(@"C:\test\two.png", false, 1, null)]);
+        var first = input.VisibleFiles[0]; var second = input.VisibleFiles[1];
+        input.SetSelection([first]);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.True(vm.CanRun);
+        input.SetSelection([second]);
+        Assert.Null(vm.Plan);
+        Assert.False(vm.CanRun);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal([second.FullPath], service.Request!.Paths);
+    }
+
+    [Fact]
+    public async Task A_plan_for_an_old_selection_is_discarded_even_when_the_input_list_is_unchanged()
+    {
+        var pending = new TaskCompletionSource<ConversionPlan>(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.Pending = pending.Task;
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null), new(@"C:\test\two.png", false, 1, null)]);
+        var first = input.VisibleFiles[0]; var second = input.VisibleFiles[1];
+        input.SetSelection([first]);
+        var building = vm.BuildPlanCommand.ExecuteAsync(null);
+        input.SetSelection([second]);
+        pending.SetResult(FakeProcessing.Plan(service.Request!));
+        await building;
+        Assert.Null(vm.Plan);
+        Assert.False(vm.CanRun);
+        Assert.Contains("已变化", vm.Feedback);
+    }
+
+    [Fact]
+    public async Task Folder_inputs_and_targets_absent_from_the_menu_cannot_start_processing()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\folder.png", true, null, null)]);
+        Assert.Empty(vm.Formats);
+        Assert.Contains("文件夹", vm.FormatFeedback);
+        input.ClearCommand.Execute(null);
+        input.AddSearchFiles([new(@"C:\test\image.png", false, 1, null)]);
+        vm.TargetFormatValue = (int)ConversionTarget.Png;
+        Assert.False(vm.CanBuildPlan);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Null(service.Request);
+    }
+
+    [Fact]
+    public async Task Clearing_selection_falls_back_to_all_inputs_and_clearing_the_list_removes_old_selection()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null), new(@"C:\test\two.png", false, 1, null)]);
+        input.SetSelection([input.VisibleFiles[0]]);
+        input.SearchText = "one";
+        Assert.Empty(input.SelectedEntries);
+        Assert.Contains("全部 2 项", vm.ScopeSummary);
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal(2, service.Request!.Paths.Count);
+        input.ClearCommand.Execute(null);
+        Assert.Empty(input.SelectedEntries);
+        Assert.Empty(vm.Formats);
+        Assert.False(vm.CanRun);
+    }
+
+    [Fact]
     public async Task Plans_become_invalid_when_inputs_or_conversion_options_change()
     {
         var viewModel = new ConversionViewModel(service, input, outputs, jobs);
@@ -24,7 +202,7 @@ public sealed class ConversionWorkflowTests
         Assert.True(viewModel.CanRun);
         input.SearchText = "different display filter";
         Assert.True(viewModel.CanRun); // Display filtering must not change the input set.
-        viewModel.FormatIndex = (int)ConversionTarget.WebP;
+        viewModel.TargetFormatValue = (int)ConversionTarget.WebP;
         Assert.False(viewModel.CanRun);
         await viewModel.BuildPlanCommand.ExecuteAsync(null);
         input.AddSearchFiles([new(@"C:\test\b.png", false, 1, null)]);
@@ -96,7 +274,7 @@ public sealed class ConversionWorkflowTests
 
     private sealed class FakeProcessing : IFileProcessingService
     {
-        public IReadOnlyList<ProcessingEngineInfo> Engines => [];
+        public IReadOnlyList<ProcessingEngineInfo> Engines { get; set; } = [];
         public Task<ConversionPlan>? Pending { get; set; }
         public ConversionRequest? Request { get; private set; }
         public Task<PreviewResult> PreviewAsync(string path, int maximumEdge, CancellationToken token) => throw new NotSupportedException();

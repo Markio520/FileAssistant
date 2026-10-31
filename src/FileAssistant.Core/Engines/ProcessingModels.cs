@@ -1,11 +1,11 @@
 namespace FileAssistant.Core.Engines;
 
-public enum ConversionTarget { Png, Jpeg, WebP, Bmp, Pdf }
+public enum ConversionTarget { Png, Jpeg, WebP, Bmp, Pdf, Tiff, Gif, Avif, Doc, Docx, Odt, Rtf, Txt, Mp3, Wav, Flac, M4a, Mp4, Mkv, Mov, WebM, Aac, Ogg }
 public enum PreviewKind { Image, Video, Pdf, Text, Unsupported }
 public sealed record PreviewResult(PreviewKind Kind, byte[]? Png = null, string? Text = null, string? Message = null);
 public sealed record ProcessingEngineInfo(string Id, string Name, string Version, string Capabilities, bool IsAvailable, string Location)
 {
-    public string StatusLabel => IsAvailable ? "已就绪" : "组件缺失";
+    public string StatusLabel => IsAvailable ? "已就绪" : Id == "libreoffice" ? "未安装 · 按需下载" : "组件缺失";
 }
 public sealed record ConversionRequest(IReadOnlyList<string> Paths, string OutputDirectory, ConversionTarget Target, int Quality = 90, int PdfDpi = 150);
 public sealed record ProcessingSource(string Path, long Length, long ModifiedUtcTicks, int PdfPages = 0, string? Error = null);

@@ -43,13 +43,16 @@ Windows App SDK 的开源源码许可与 NuGet 分发包所附条款分别记录
 | PDFiumCore | 157.0.8100 | .NET PDFium 调用封装 | [对应源码提交的 Apache-2.0 许可](licenses/PDFiumCore-157.0.8100.txt)，来源提交 `9818b101e713409e033b5489cb41c949e953dced` |
 | bblanchon.PDFium.Win32 / PDFium | 157.0.8100 | PDF 首页渲染与逐页导出 | 保留[二进制分发声明](licenses/PDFium-157.0.8100-NOTICES.txt)和[原生第三方许可目录](licenses/PDFium-157.0.8100/)，其中 `pdfium.txt` 是 PDFium 自身的 BSD 风格许可 |
 | PdfPig | 0.1.16 | 图片合并成 PDF | [对应源码提交的 Apache-2.0 许可](licenses/PdfPig-0.1.16.txt)，来源提交 `a7bb35662bbbf405efddad50aedc9bcdcf515afc` |
-| FFmpeg（BtbN LGPL shared 构建） | 8.1.3-9-g29e619e767 | 视频首帧 | 原包 LGPL-3.0 LICENSE 与文档随 `Engines/ffmpeg/` 交付；校验 `-buildconf` 无 `--enable-gpl` / `--enable-nonfree`，不据此将全部依赖统称为 Apache 或 MIT |
+| FFmpeg（BtbN LGPL shared 构建） | 8.1.3-9-g29e619e767 | 视频首帧、音频与视频格式转换 | 原包 LGPL-3.0 LICENSE 与文档随 `Engines/ffmpeg/` 交付；校验 `-buildconf` 无 `--enable-gpl` / `--enable-nonfree`，不据此将全部依赖统称为 Apache 或 MIT |
+| LibreOffice（按需官方 x64 MSI） | 26.2.6.3 | 文本文档互转和 PDF 输出 | 官方 [许可说明](https://www.libreoffice.org/licenses/)为 MPL-2.0 及多种第三方许可；保留实际包内 [license.txt](licenses/LibreOffice-26.2.6-license.txt) 与 [NOTICE](licenses/LibreOffice-26.2.6-NOTICE.txt)，私有安装保留完整声明 |
 
 PDFium 声明取自固定 [chromium/8100 发行包](https://github.com/bblanchon/pdfium-binaries/releases/tag/chromium/8100)；该包 `bin/pdfium.dll` 与 NuGet 的 win-x64 DLL SHA-256 相同：`AE913F407E8D3F5CDBF08A9869564D647B13E132E01EB376C0A5A33B7A227A45`。声明中的 `licenses/` 相对路径对应本仓库同版本许可目录；应用输出将声明统一复制至 `Licenses/`，文件名中的版本点替换为下划线，以免被 PRI 当作资源限定符。
 
 FFmpeg [固定二进制包](https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n8.1.3-9-g29e619e767-win64-lgpl-shared-8.1.zip)为 80,733,362 字节；[源码提交](https://github.com/FFmpeg/FFmpeg/commit/29e619e767)及[构建配方](https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08)记录在清单。当前为本地开发接入，尚未对外发布；正式分发前须按实际 LGPL 构建及所有外部库补齐对应源码获取/分发材料、构建配置和完整许可清单，不能将构建通过等同于分发审计通过。
 
 ## 工程生成来源
+
+LibreOffice 固定归档、SHA-256 和源码提交见 `engines/manifest.json`；安装器先验证散列再用 Windows Installer `/a` 解包到本软件私有目录，不执行全局 Office 注册或文件关联操作。已核对官方 MSI 的 The Document Foundation Authenticode 签名，私有布局保留 `System64` 中随包分发的 Microsoft C++ 运行库及其声明。运行时由用户显式下载，普通构建不包含这个约 373 MB 包。发布前仍须连同 [固定源码](https://github.com/LibreOffice/core/tree/8221e31b3ac356a1623c672912a3d2b492f7e3d1)补全版本对应的源码获取材料和最终分发审核，按需下载不取代这些义务。
 
 - 应用使用微软 `Microsoft.WindowsAppSDK.WinUI.CSharp.Templates` **0.0.7-alpha** 中的 `winui-mvvm` 模板生成。[官方模板说明](https://github.com/microsoft/WindowsAppSDK/blob/main/dev/Templates/Dotnet/README.md)
 - 模板包元数据声明 MIT，仓库提交为 `164ad9681a9133f056ff38a43609e6227121e91a`；保留该提交的[许可证](./licenses/WinUI-Templates-0.0.7-alpha.txt)。
