@@ -1,7 +1,7 @@
 <UserControl x:Class="FileAssistant.App.Features.Convert.ConversionView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:input="using:FileAssistant.App.Features.FileInput" xmlns:local="using:FileAssistant.App.Features.Convert">
-    <input:FileInputView x:Name="InputView" ViewModel="{x:Bind ViewModel.Input}" SearchRequested="Input_SearchRequested">
+    <input:FileInputView x:Name="InputView" ViewModel="{x:Bind ViewModel.Input}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested">
         <input:FileInputView.OperationContent><local:ConversionOptionsView ViewModel="{x:Bind ViewModel}" /></input:FileInputView.OperationContent>
     </input:FileInputView>
 </UserControl>

@@ -28,6 +28,12 @@
         <Setter Property="Background" Value="{ThemeResource WorkspaceSurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource WorkspaceBorderBrush}" />
     </Style>
+    <Style x:Key="ActionDropDownSubItemStyle" TargetType="MenuFlyoutSubItem" BasedOn="{StaticResource DefaultMenuFlyoutSubItemStyle}">
+        <Setter Property="MinHeight" Value="{StaticResource SelectionDropDownMinHeight}" />
+        <Setter Property="Padding" Value="{StaticResource SelectionDropDownItemPadding}" />
+        <Setter Property="Margin" Value="{StaticResource SelectionDropDownItemMargin}" />
+        <Setter Property="UseSystemFocusVisuals" Value="False" />
+    </Style>
     <Style x:Key="ActionDropDownItemStyle" TargetType="MenuFlyoutItem" BasedOn="{StaticResource DefaultMenuFlyoutItemStyle}">
         <Setter Property="MinHeight" Value="{StaticResource SelectionDropDownMinHeight}" />
         <Setter Property="Padding" Value="{StaticResource SelectionDropDownItemPadding}" />

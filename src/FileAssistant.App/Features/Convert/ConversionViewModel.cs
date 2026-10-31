@@ -61,28 +61,20 @@ public partial class ConversionViewModel : ObservableObject
         : TargetFormatValue == (int)ConversionTarget.Pdf ? "按输入列表顺序合并为一个 PDF，一图一页；多帧图片读取第一帧。"
         : TargetFormatValue is (int)ConversionTarget.Jpeg or (int)ConversionTarget.Bmp ? "透明区域将使用白色背景。多帧图片读取第一帧。"
         : "多帧图片只读取第一帧；GIF 输出为静态图片。";
-    public string ScopeSummary => ConversionEntries.Count == 0 ? "请添加要转换的文件。"
-        : Input.SelectedEntries.Count > 0 ? $"仅转换已选 {ConversionEntries.Count:N0} 项。" : $"未选择文件，将转换输入列表全部 {ConversionEntries.Count:N0} 项。";
+    public string ScopeSummary => ConversionEntries.Count == 0 ? Input.SelectedFolderIds.Count > 0 ? "所选文件夹为空，请重新选择。" : "当前文件夹没有文件，请先添加要转换的文件。"
+        : Input.SelectionCount > 0 ? Input.SelectedFolderIds.Count > 0 ? $"已选 {Input.SelectedFolderIds.Count:N0} 个文件夹" + (Input.SelectionCount > Input.SelectedFolderIds.Count ? $"、{Input.SelectionCount - Input.SelectedFolderIds.Count:N0} 个文件" : "") + $" · 实际转换 {ConversionEntries.Count:N0} 项（含子文件夹，已去重）。" : $"仅转换已选 {ConversionEntries.Count:N0} 项。"
+        : Input.CurrentFolderId != Guid.Empty ? $"将转换“{Input.CurrentFolderName}”及子文件夹中的全部 {ConversionEntries.Count:N0} 个文件。"
+        : $"未选择文件，将转换输入列表全部 {ConversionEntries.Count:N0} 项。";
     private bool CanShowOutputs => Report?.Outputs.Count > 0;
     public string PlanSummary => Plan is null ? "先预览转换计划，再开始转换。" : $"将生成 {Plan.ReadyCount} 个文件 · {Plan.RejectedCount} 项不可处理";
     public event EventHandler<int>? OutputsRequested;
     public event EventHandler? EngineManagementRequested;
     private int lastTask;
-    private IReadOnlyList<SearchFile> ConversionEntries
-    {
-        get
-        {
-            var entries = Input.SearchEntries;
-            var selected = Input.SelectedEntries;
-            if (selected.Count == 0) return entries;
-            var paths = selected.Select(file => file.FullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            return entries.Where(file => paths.Contains(file.FullPath)).ToArray();
-        }
-    }
-    public string InputIdentity => string.Join('\0', ConversionEntries.Select(file => file.FullPath));
+    private IReadOnlyList<SearchFile> ConversionEntries => Input.EffectiveEntries;
+    public string InputIdentity => $"{Input.CurrentFolderId:N}:{Input.CollectionRevision}:" + string.Join('\0', ConversionEntries.Select(file => file.FullPath));
     private void InputChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is not (nameof(WorkspaceViewModel.BatchSummary) or nameof(WorkspaceViewModel.SelectedEntries))) return;
+        if (args.PropertyName is not (nameof(WorkspaceViewModel.BatchSummary) or nameof(WorkspaceViewModel.EffectiveEntries) or nameof(WorkspaceViewModel.CollectionRevision))) return;
         RefreshInput();
     }
     private void RefreshInput(bool force = false)
@@ -106,13 +98,16 @@ public partial class ConversionViewModel : ObservableObject
         if (!Formats.Any(option => option.Value == TargetFormatValue)) TargetFormatValue = Formats.FirstOrDefault()?.Value ?? -1;
         FormatFeedback = string.Empty;
         if (HasMissingEngine) FormatFeedback = requiredEngine == "libreoffice" ? "文档转换需要 LibreOffice，请前往引擎管理按需下载。文件将在本机转换。" : "音视频引擎缺失，请前往引擎管理下载或修复。";
-        else if (entries.Any(file => file.IsFolder)) FormatFeedback = "当前不支持文件夹转换，请取消选择文件夹，或将它移出输入列表。";
+        else if (entries.Any(file => file.IsFolder)) FormatFeedback = "当前不直接转换磁盘文件夹，请选择其中的文件；软件文件夹会自动展开已收集的文件引用。";
         else if (entries.Count > 0 && !HasFormats)
         {
             var unsupported = entries.Where(file => ConversionCapabilities.GetTargets(file.FullPath).Count == 0)
                 .Select(file => file.Extension.Length == 0 ? "无扩展名文件" : file.Extension.ToUpperInvariant()).Distinct().ToArray();
-            FormatFeedback = unsupported.Length == 0 ? "这些文件没有共同的输出格式，请按类型分开选择。"
-                : $"这些文件没有共同的输出格式，请按类型分开选择。当前尚未接入：{string.Join("、", unsupported)}。";
+            var kinds = entries.GroupBy(file => ConversionCapabilities.IsImage(file.FullPath) ? "图片" : ConversionCapabilities.IsDocument(file.FullPath) ? "文本文档"
+                : ConversionCapabilities.IsAudio(file.FullPath) ? "音频" : ConversionCapabilities.IsVideo(file.FullPath) ? "视频" : file.Extension.Equals("pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : "其他文件").ToArray();
+            var scope = string.Join("、", kinds.Select(group => $"{group.Count():N0} 项{group.Key}"));
+            FormatFeedback = $"当前包含 {scope}，没有共同的输出格式，请按类型分开选择。";
+            if (unsupported.Length > 0) FormatFeedback += $" 当前尚未接入：{string.Join("、", unsupported)}。";
         }
         OnPropertyChanged(nameof(ShowPdfDpi));
         OnPropertyChanged(nameof(ConversionNote));

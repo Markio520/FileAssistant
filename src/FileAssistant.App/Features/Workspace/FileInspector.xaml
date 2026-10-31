@@ -16,6 +16,7 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="{x:Bind ViewModel.PreviewName, Mode=OneWay}" FontSize="18" FontWeight="SemiBold"
                             TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <TextBlock Text="{x:Bind ViewModel.PreviewStatus, Mode=OneWay}" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
                         <TextBlock Text="在列表中选择文件，查看详细信息。" Visibility="{x:Bind ViewModel.ShowSelectionHint, Mode=OneWay}"
                             FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
                     </StackPanel>

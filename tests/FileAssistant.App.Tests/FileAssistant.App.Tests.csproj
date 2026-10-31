@@ -18,6 +18,9 @@
     <Compile Include="../../src/FileAssistant.App/Features/Search/SearchResultItem.cs" Link="Sources/SearchResultItem.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Search/SearchColumnWidths.cs" Link="Sources/SearchColumnWidths.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceViewModel.cs" Link="Sources/WorkspaceViewModel.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceViewModel.Collections.cs" Link="Sources/WorkspaceViewModel.Collections.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceViewModel.Undo.cs" Link="Sources/WorkspaceViewModel.Undo.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/FileInput/CollectionSourceSelection.cs" Link="Sources/CollectionSourceSelection.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceInputPurpose.cs" Link="Sources/WorkspaceInputPurpose.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceFile.cs" Link="Sources/WorkspaceFile.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceSamples.cs" Link="Sources/WorkspaceSamples.cs" />

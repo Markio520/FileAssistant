@@ -3,7 +3,7 @@
     xmlns:local="using:FileAssistant.App.Features.Convert" xmlns:controls="using:FileAssistant.App.Controls" xmlns:engines="using:FileAssistant.Core.Engines">
     <StackPanel Spacing="14">
         <TextBlock Text="本地格式转换" FontSize="20" FontWeight="SemiBold" />
-        <TextBlock Text="{x:Bind ViewModel.ScopeSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" ToolTipService.ToolTip="列表筛选只影响显示；未选择文件时，使用整个输入列表。" />
+        <TextBlock Text="{x:Bind ViewModel.ScopeSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" ToolTipService.ToolTip="软件文件夹会展开并去重。列表筛选只影响显示；未选择文件时，使用当前软件文件夹及子文件夹的全部输入。" />
         <StackPanel Spacing="6">
             <TextBlock Text="输出格式" />
             <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Formats, Mode=OneWay}" SelectedValue="{x:Bind ViewModel.TargetFormatValue, Mode=TwoWay}"

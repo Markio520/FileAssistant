@@ -1,0 +1,19 @@
+<UserControl x:Class="FileAssistant.App.Features.FileInput.CollectionSourcePicker"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:workspace="using:FileAssistant.App.Features.Workspace">
+    <StackPanel Spacing="10" MinWidth="320">
+        <TextBlock Text="单击选择，双击文件夹进入。跨目录保留勾选。" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
+        <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="根目录" Click="Root_Click"/><Button x:Name="Up" Content="上一级" Click="Up_Click"/><Button Content="全选本层" Click="All_Click"/><Button Content="清除选择" Click="Clear_Click"/></StackPanel>
+        <TextBlock x:Name="PathLabel" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
+        <ListView x:Name="Files" SelectionMode="Multiple" IsMultiSelectCheckBoxEnabled="True" IsItemClickEnabled="False" MaxHeight="220"
+            ItemContainerStyle="{StaticResource WorkspaceListItemStyle}" SelectionChanged="Files_SelectionChanged" KeyDown="Files_KeyDown" AutomationProperties.Name="暂存区文件夹和文件">
+            <ListView.ItemTemplate><DataTemplate x:DataType="workspace:WorkspaceFile">
+                <Grid ColumnSpacing="10" Padding="4,6" Background="Transparent"><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="20" Foreground="{ThemeResource WorkspaceAccentBrush}"/>
+                    <StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="{x:Bind Name}" TextWrapping="Wrap"/><TextBlock Text="{x:Bind Type}" Style="{StaticResource WorkspaceCaptionStyle}"/></StackPanel>
+                </Grid>
+            </DataTemplate></ListView.ItemTemplate>
+        </ListView>
+        <TextBlock x:Name="CountLabel" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
+    </StackPanel>
+</UserControl>

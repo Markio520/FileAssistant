@@ -92,25 +92,32 @@ public partial class App : Application
             return;
         }
         var inputReader = new Infrastructure.FileSystem.FileInputReader();
-        Workspace = new(inputReader);
-        CopyInput = new(inputReader, isStaging: false);
+        var collectionsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Collections");
+        Workspace = new(inputReader, Features.Workspace.WorkspaceInputPurpose.Staging,
+            new Infrastructure.Persistence.JsonFileCollectionStore(Path.Combine(collectionsDirectory, "staging.json")));
+        CopyInput = new(inputReader, Features.Workspace.WorkspaceInputPurpose.Copy,
+            new Infrastructure.Persistence.JsonFileCollectionStore(Path.Combine(collectionsDirectory, "copy.json")));
         FileProcessing = new Infrastructure.Engines.LocalFileProcessingService(Infrastructure.Engines.EnginePaths.Installed);
         EngineSettings = new(FileProcessing, new Infrastructure.Engines.EnginePackageInstaller(new HttpClient { Timeout = TimeSpan.FromMinutes(10) },
             Infrastructure.Engines.EnginePaths.ExtensionsDirectory), Infrastructure.Engines.EnginePackageCatalog.Ffmpeg, Infrastructure.Engines.EnginePackageCatalog.LibreOffice);
         Jobs = new();
         Outputs = new(new Infrastructure.Windows.WindowsFileInteraction());
-        Conversion = new(FileProcessing, new(inputReader, Features.Workspace.WorkspaceInputPurpose.Conversion), Outputs, Jobs);
+        Conversion = new(FileProcessing, new(inputReader, Features.Workspace.WorkspaceInputPurpose.Conversion,
+            new Infrastructure.Persistence.JsonFileCollectionStore(Path.Combine(collectionsDirectory, "conversion.json"))), Outputs, Jobs);
         EngineSettings.AvailabilityChanged += (_, _) => Conversion.RefreshCapabilities();
         indexRuntime = new(Infrastructure.Windows.EverythingDistribution.BundledExecutable,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "Search", "Everything-1.4"), instance);
         var searchService = new Infrastructure.FileSystem.FileSearchService(
             new Infrastructure.Windows.EverythingSearchClient(instance), new Infrastructure.FileSystem.DirectorySearchIndex(), indexRuntime);
-        Search = new(searchService, () => Workspace.SearchEntries, Workspace.ImportFilesAsync, new Infrastructure.Windows.WindowsFileInteraction(),
+        Search = new(searchService, () => Workspace.SearchEntries, async files =>
+            await Features.FileInput.FileCollectionDialogs.ImportAsync(Workspace, Core.Features.FileCollections.FileCollectionBundle.FromFiles(files), (Microsoft.UI.Xaml.FrameworkElement)Window.Content)
+                ?? new([], "已取消加入暂存区。"), new Infrastructure.Windows.WindowsFileInteraction(),
             new Infrastructure.Persistence.JsonSettingsStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "search-settings.json")));
         await Search.LoadPreferencesAsync();
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Window.Activate();
+        var collectionsLoading = Task.WhenAll(Workspace.LoadCollectionAsync(), CopyInput.LoadCollectionAsync(), Conversion.Input.LoadCollectionAsync());
         Window.AppWindow.Closing += async (_, e) =>
         {
             if (closed) return;
@@ -128,9 +135,14 @@ public partial class App : Application
             {
                 if (Conversion.RunCommand.ExecutionTask is { } processing) await processing;
                 if (EngineSettings.DownloadVideoCommand.ExecutionTask is { } download) await download;
+                if (EngineSettings.DownloadOfficeCommand.ExecutionTask is { } officeDownload) await officeDownload;
+                await collectionsLoading;
+                await Task.WhenAll(Workspace.FlushCollectionAsync(), CopyInput.FlushCollectionAsync(), Conversion.Input.FlushCollectionAsync());
+                if (Workspace.HasUnsavedCollection || CopyInput.HasUnsavedCollection || Conversion.Input.HasUnsavedCollection)
+                { closing = false; Window.AppWindow.Show(); return; }
                 await Search.FlushPreferencesAsync(); await indexRuntime.DisposeAsync();
             }
-            finally { closed = true; instanceMutex.ReleaseMutex(); instanceMutex.Dispose(); Window.Close(); }
+            finally { if (closing) { closed = true; instanceMutex.ReleaseMutex(); instanceMutex.Dispose(); Window.Close(); } }
         };
         _ = WarmIndexAsync();
     }

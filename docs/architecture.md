@@ -98,6 +98,9 @@ FileAssistant/
 
 ### 目录职责补充
 
+- 软件文件夹由 Core `Features/FileCollections` 维护树、成员和可移植转交包，真实磁盘文件夹保留 `SearchFile.IsFolder` 语义。`WorkspaceViewModel.Collections` 维护独立输入实例的范围、导航及自动保存，`FileInputView.Collections` 与共用文件夹选择/来源选择控件负责交互。Infrastructure `JsonFileCollectionStore` 执行分实例原子保存和失效引用恢复；页面不直接读写保存文件。详细规则见 [软件文件夹设计](file-collections-design.md)。
+- 输入整理的单步撤销集中在 `WorkspaceViewModel.Undo`，快照只影响该输入实例；恢复后仍走统一通知、计划失效及自动保存流程，不持久化撤销历史。`CollectionSourceSelection` 管理导入弹窗的跨目录选择，与来源页本身的选择分离；来源、目标、层级选项统一编排在 `FileCollectionDialogs`，不由页面串联多个选择弹窗。
+
 - 常见转换共用原有计划、原件校验、临时输出与原子提交；`Infrastructure/Engines/Documents/LibreOfficeEngine` 隔离用户文件和 Office 配置，`Media/FfmpegConverter` 探测实际流并按固定容器/编码组合转换，`LocalEngineProcess` 统一参数列表、无界面启动、超时与取消。`EnginePackageInstaller` 支持已校验 ZIP 及官方 MSI 的私有行政解包，原子切换安装指针；设置负责用户触发的按需安装，成功后刷新转换能力，不自动开始任务。
 
 - 转换能力表在 Core `Engines/ConversionCapabilities`：共享图片输入类型，按文件方向计算输出交集；转换 ViewModel 只把真实能力映射成动态 `SelectionOption`，值保持为 `ConversionTarget`。`WorkspaceViewModel.SetSelection` 提供完整选择快照，转换按“已选优先、无选择则全部”生成同一批次的格式菜单、预览和执行计划，PDF 保持列表顺序。选中项变化和过期计划由 ViewModel 隔离，不在页面中复制格式规则。

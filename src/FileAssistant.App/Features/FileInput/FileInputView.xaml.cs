@@ -1,5 +1,6 @@
 using FileAssistant.App.Features.Workspace;
 using FileAssistant.Core.Features.Search;
+using FileAssistant.Core.Features.FileCollections;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -14,6 +15,8 @@ namespace FileAssistant.App.Features.FileInput;
 public sealed class FileInputTransferEventArgs(IReadOnlyList<SearchFile> files) : EventArgs
 {
     public IReadOnlyList<SearchFile> Files { get; } = files;
+    public FileCollectionBundle Bundle { get; private init; } = FileCollectionBundle.FromFiles(files);
+    public FileInputTransferEventArgs(FileCollectionBundle bundle) : this(bundle.Files) { Bundle = bundle; }
 }
 
 public sealed partial class FileInputView : UserControl
@@ -66,10 +69,11 @@ public sealed partial class FileInputView : UserControl
         if (choosing || !ViewModel.CanReceiveFiles) return;
         choosing = true;
         var target = ViewModel;
+        var destination = target.CurrentFolderId;
         try
         {
             var paths = await pick();
-            if (paths.Count > 0) await target.ImportPathsAsync(paths);
+            if (paths.Count > 0) await target.ImportPathsAsync(paths, destination);
         }
         catch (Exception) { target.InputFeedback = "无法打开文件选择器，请重试，或直接拖入文件。"; }
         finally { choosing = false; }
@@ -79,98 +83,72 @@ public sealed partial class FileInputView : UserControl
     {
         if (choosing || !ViewModel.CanReceiveFiles) return;
         var target = ViewModel;
+        var destination = target.CurrentFolderId;
         try
         {
             var paths = await FileInputSources.ReadAsync(Clipboard.GetContent());
             if (paths.Count == 0) target.InputFeedback = "剪贴板中没有可添加的文件。请复制文件，或每行一个完整文件路径。";
-            else await target.ImportPathsAsync(paths);
+            else await target.ImportPathsAsync(paths, destination);
         }
         catch (Exception) { target.InputFeedback = "无法读取剪贴板，请重新复制文件后重试。"; }
     }
 
     private async void Input_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key != VirtualKey.V || Visibility != Visibility.Visible ||
+        if (e.Key is not (VirtualKey.V or VirtualKey.Z) || Visibility != Visibility.Visible ||
             !InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control).HasFlag(CoreVirtualKeyStates.Down)) return;
-        // Text inputs keep their ordinary paste behavior.
+        // Text inputs keep their ordinary paste and undo behavior.
         for (var focus = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject; focus is not null; focus = VisualTreeHelper.GetParent(focus))
             if (focus is TextBox or RichEditBox or PasswordBox) return;
         e.Handled = true;
-        await PasteAsync();
+        if (e.Key == VirtualKey.Z) { if (!choosing && ViewModel.CanUndo) ViewModel.UndoCommand.Execute(null); }
+        else await PasteAsync();
     }
 
     private void Files_DragOver(object sender, DragEventArgs e)
     {
-        e.AcceptedOperation = ViewModel.CanReceiveFiles && !choosing && FileInputSources.CanRead(e.DataView)
-            ? DataPackageOperation.Copy : DataPackageOperation.None;
-        if (e.AcceptedOperation != DataPackageOperation.None)
-        {
-            e.DragUIOverride.Caption = ViewModel.IsStaging ? "加入暂存区" : "加入此功能的输入列表";
-            e.DragUIOverride.IsCaptionVisible = true;
-        }
-        e.Handled = true;
+        ClearDropHighlight();
+        CollectionDragOver(e, ViewModel.CurrentFolderId);
     }
 
     private async void Files_Drop(object sender, DragEventArgs e)
     {
-        if (!ViewModel.CanReceiveFiles || choosing) { e.AcceptedOperation = DataPackageOperation.None; return; }
-        var deferral = e.GetDeferral();
-        var target = ViewModel;
-        e.AcceptedOperation = DataPackageOperation.Copy;
-        e.Handled = true;
-        try
-        {
-            var paths = await FileInputSources.ReadAsync(e.DataView);
-            if (paths.Count == 0) target.InputFeedback = "未发现可添加的文件，请拖入本地文件或文件夹。";
-            else await target.ImportPathsAsync(paths);
-        }
-        catch (Exception) { target.InputFeedback = "无法读取拖入的项目，请通过“添加”选择文件。"; }
-        finally { deferral.Complete(); }
+        await CollectionDropAsync(e, ViewModel.CurrentFolderId);
     }
 
-    private IReadOnlyList<SearchFile> SelectedFiles() => FileList.SelectedItems.OfType<WorkspaceFile>()
-        .Where(file => file.Source is not null).Select(file => file.Source!).ToArray();
-    private void SendSelected_Click(object sender, RoutedEventArgs e) => SendToCopy(SelectedFiles());
-    private void SendAll_Click(object sender, RoutedEventArgs e) => SendToCopy(ViewModel.SearchEntries);
-    private void ConvertSelected_Click(object sender, RoutedEventArgs e) => SendToConversion(SelectedFiles());
-    private void ConvertAll_Click(object sender, RoutedEventArgs e) => SendToConversion(ViewModel.SearchEntries);
-    private void SendToConversion(IReadOnlyList<SearchFile> files)
-    { if (files.Count > 0 && ViewModel.CanReceiveFiles) FilesForConversionRequested?.Invoke(this, new(files)); }
-    private void SendToCopy(IReadOnlyList<SearchFile> files)
+    private void SendSelected_Click(object sender, RoutedEventArgs e) => SendToCopy(ViewModel.ExportSelection());
+    private void SendAll_Click(object sender, RoutedEventArgs e) => SendToCopy(ViewModel.ExportCurrentFolder());
+    private void ConvertSelected_Click(object sender, RoutedEventArgs e) => SendToConversion(ViewModel.ExportSelection());
+    private void ConvertAll_Click(object sender, RoutedEventArgs e) => SendToConversion(ViewModel.ExportCurrentFolder());
+    private void SendToConversion(FileCollectionBundle bundle)
+    { if (bundle.HasItems && ViewModel.CanReceiveFiles) FilesForConversionRequested?.Invoke(this, new(bundle)); }
+    private void SendToCopy(FileCollectionBundle bundle)
     {
-        if (files.Count > 0 && ViewModel.CanReceiveFiles) FilesForCopyRequested?.Invoke(this, new(files));
+        if (bundle.HasItems && ViewModel.CanReceiveFiles) FilesForCopyRequested?.Invoke(this, new(bundle));
     }
 
     private async void AddToStaging_Click(object sender, RoutedEventArgs e)
     {
-        var files = SelectedFiles();
-        if (files.Count == 0 || !ViewModel.CanExportSelection) return;
-        var report = await App.Workspace.ImportFilesAsync(files);
-        ViewModel.ImportReport = report;
-        ViewModel.InputFeedback = $"加入暂存区：{report.Summary}";
+        if (choosing || !ViewModel.CanExportSelection) return;
+        choosing = true;
+        try
+        {
+            var report = await FileCollectionDialogs.ImportAsync(App.Workspace, ViewModel.ExportSelection(), this);
+            if (report is not null) { ViewModel.ImportReport = report; ViewModel.InputFeedback = $"加入暂存区：{report.Summary}"; }
+        }
+        catch (Exception) { ViewModel.InputFeedback = "无法打开目标文件夹选择窗口，请稍后重试。"; }
+        finally { choosing = false; }
     }
 
     private async void ImportFromStaging_Click(object sender, RoutedEventArgs e)
     {
         if (choosing || !ViewModel.CanReceiveFiles) return;
-        var files = App.Workspace.SearchEntries.Select(WorkspaceFile.FromSource).ToArray();
-        if (files.Length == 0) { ViewModel.InputFeedback = "暂存区没有可导入的文件。也可以通过“添加”、拖入或粘贴直接添加。"; return; }
+        if (!App.Workspace.HasFiles) { ViewModel.InputFeedback = "暂存区没有可导入的文件或软件文件夹。"; return; }
+        if (App.Workspace.HasSamples) { ViewModel.InputFeedback = "示例文件不能导入，请先添加真实文件。"; return; }
         choosing = true;
         try
         {
-            var list = new ListView { ItemsSource = files, SelectionMode = ListViewSelectionMode.Multiple,
-                IsMultiSelectCheckBoxEnabled = true, ItemTemplate = (DataTemplate)Resources["StagingItemTemplate"], MaxHeight = 360 };
-            var all = new Button { Content = $"选择全部 {files.Length:N0} 项" };
-            all.Click += (_, _) => list.SelectAll();
-            var panel = new StackPanel { Spacing = 12 };
-            panel.Children.Add(new TextBlock { Text = "选择要导入的文件。追加到当前列表，重复路径会跳过。", TextWrapping = TextWrapping.Wrap });
-            panel.Children.Add(all); panel.Children.Add(list);
-            var dialog = new ContentDialog { Title = "从暂存区导入", Content = panel, XamlRoot = XamlRoot, RequestedTheme = ActualTheme,
-                PrimaryButtonText = "导入选中项（0）", CloseButtonText = "取消", IsPrimaryButtonEnabled = false, DefaultButton = ContentDialogButton.Primary };
-            list.SelectionChanged += (_, _) => { dialog.IsPrimaryButtonEnabled = list.SelectedItems.Count > 0;
-                dialog.PrimaryButtonText = $"导入选中项（{list.SelectedItems.Count:N0}）"; };
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-                await ViewModel.ImportFilesAsync(list.SelectedItems.Cast<WorkspaceFile>().Select(file => file.Source!).ToArray());
+            await FileCollectionDialogs.ImportFromAsync(App.Workspace, ViewModel, this);
         }
         catch (Exception) { ViewModel.InputFeedback = "暂时无法打开导入窗口，请关闭其他弹窗后重试。"; }
         finally { choosing = false; }
@@ -196,12 +174,28 @@ public sealed partial class FileInputView : UserControl
         ViewModel.SetSelection(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray(),
             e.AddedItems.OfType<WorkspaceFile>().LastOrDefault() ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault());
     }
-    private void Remove_Click(object sender, RoutedEventArgs e) => RemoveSelection();
-    private void Remove_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { RemoveSelection(); args.Handled = true; }
+    private async void Remove_Click(object sender, RoutedEventArgs e) => await RemoveSelectionAsync();
+    private async void Remove_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { args.Handled = true; await RemoveSelectionAsync(); }
     private void SelectAll_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { FileList.SelectAll(); args.Handled = true; }
-    private void RemoveSelection()
+    private async Task RemoveSelectionAsync()
     {
-        if (ViewModel.CanEditList) ViewModel.RemoveFromList(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray());
+        if (!ViewModel.CanEditList || choosing) return;
+        var items = FileList.SelectedItems.OfType<WorkspaceFile>().ToArray();
+        if (items.Length == 0) return;
+        choosing = true;
+        try
+        {
+            if (items.Any(item => item.IsCollectionFolder))
+            {
+                var count = ViewModel.ExportItems(items).Files.Count;
+                var dialog = FileCollectionDialogs.Dialog(this, "从列表移除文件夹及内容？",
+                    new TextBlock { Text = $"将移出所选文件夹及其中 {count:N0} 项。原文件和其他功能中的列表保留，可撤销本次操作。", TextWrapping = TextWrapping.Wrap }, "从列表移除");
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+            }
+            ViewModel.RemoveFromList(items);
+        }
+        catch (Exception) { ViewModel.InputFeedback = "无法移出这些项目，请刷新列表后重试。"; }
+        finally { choosing = false; }
     }
     private void WindowSize_Click(object sender, RoutedEventArgs e)
     {

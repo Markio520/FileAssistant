@@ -54,14 +54,14 @@ public sealed partial class WorkspacePage : Page
 
     private async void Input_FilesForCopyRequested(object? sender, FileInputTransferEventArgs e)
     {
-        Navigation.SelectedItem = CopyNavigation;
-        await CopyViewModel.ImportFilesAsync(e.Files);
+        var report = await FileCollectionDialogs.ImportAsync(CopyViewModel, e.Bundle, this);
+        if (report is not null) Navigation.SelectedItem = CopyNavigation;
     }
 
     private async void Input_FilesForConversionRequested(object? sender, FileInputTransferEventArgs e)
     {
-        Navigation.SelectedItem = ConversionNavigation;
-        await App.Conversion.Input.ImportFilesAsync(e.Files);
+        var report = await FileCollectionDialogs.ImportAsync(App.Conversion.Input, e.Bundle, this);
+        if (report is not null) Navigation.SelectedItem = ConversionNavigation;
     }
 
     private void Navigation_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)

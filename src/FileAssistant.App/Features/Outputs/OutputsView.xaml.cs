@@ -18,7 +18,10 @@ public sealed partial class OutputsView : UserControl
     private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e) => ViewModel.SetSelection(Files.SelectedItems.Cast<OutputEntry>().ToArray());
     private void Files_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e) => ViewModel.OpenCommand.Execute(null);
     private async void AddToStaging_Click(object sender, RoutedEventArgs e)
-    { var report = await App.Workspace.ImportFilesAsync(ViewModel.SelectedFiles); ViewModel.Feedback = report.Summary; }
+    {
+        var report = await FileCollectionDialogs.ImportAsync(App.Workspace, Core.Features.FileCollections.FileCollectionBundle.FromFiles(ViewModel.SelectedFiles), this);
+        if (report is not null) ViewModel.Feedback = report.Summary;
+    }
     private void Convert_Click(object sender, RoutedEventArgs e) => FilesForConversionRequested?.Invoke(this,new(ViewModel.SelectedFiles));
     private void Copy_Click(object sender, RoutedEventArgs e) => FilesForCopyRequested?.Invoke(this,new(ViewModel.SelectedFiles));
 }

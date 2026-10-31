@@ -58,9 +58,9 @@
 
             <Grid>
             <input:FileInputView x:Name="StagingPanel" ViewModel="{x:Bind ViewModel}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
-            <input:FileInputView x:Name="CopyPanel" ViewModel="{x:Bind CopyViewModel}" Visibility="Collapsed" SearchRequested="Input_SearchRequested" />
+            <input:FileInputView x:Name="CopyPanel" ViewModel="{x:Bind CopyViewModel}" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <search:SearchView x:Name="SearchPanel" Visibility="Collapsed" WorkspaceRequested="Search_WorkspaceRequested" />
-            <convert:ConversionView x:Name="ConversionPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" />
+            <convert:ConversionView x:Name="ConversionPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <outputs:OutputsView x:Name="OutputsPanel" Visibility="Collapsed" FilesForConversionRequested="Input_FilesForConversionRequested" FilesForCopyRequested="Input_FilesForCopyRequested" />
             <settings:EnginesView x:Name="SettingsPanel" Visibility="Collapsed" />
             </Grid>
