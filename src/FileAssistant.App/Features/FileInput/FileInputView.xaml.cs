@@ -41,6 +41,8 @@ public sealed partial class FileInputView : UserControl
     public FileInputView()
     {
         InitializeComponent();
+        // Item containers handle selection gestures; navigation must also receive handled double taps.
+        FileList.AddHandler(UIElement.DoubleTappedEvent, new DoubleTappedEventHandler(Files_DoubleTapped), handledEventsToo: true);
         Loaded += (_, _) => UpdateInspector();
         KeyDown += Input_KeyDown;
     }

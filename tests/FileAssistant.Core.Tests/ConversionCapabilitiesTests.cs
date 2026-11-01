@@ -9,7 +9,7 @@ public sealed class ConversionCapabilitiesTests
     [InlineData("photo.JPEG")]
     public void Jpeg_sources_offer_other_image_formats_and_pdf(string path)
     {
-        Assert.Equal([ConversionTarget.Png, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif, ConversionTarget.Pdf],
+        Assert.Equal([ConversionTarget.Png, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif, ConversionTarget.Pdf, ConversionTarget.Ico],
             ConversionCapabilities.GetTargets(path));
     }
 
@@ -33,7 +33,7 @@ public sealed class ConversionCapabilitiesTests
     [Fact]
     public void Pdf_exports_pages_to_images_and_can_share_valid_destinations_with_images()
     {
-        Assert.Equal([ConversionTarget.Png, ConversionTarget.Jpeg, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif],
+        Assert.Equal([ConversionTarget.Png, ConversionTarget.Jpeg, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif, ConversionTarget.Txt],
             ConversionCapabilities.GetTargets("document.PDF"));
         Assert.Equal([ConversionTarget.Jpeg, ConversionTarget.WebP, ConversionTarget.Bmp, ConversionTarget.Tiff, ConversionTarget.Gif, ConversionTarget.Avif],
             ConversionCapabilities.GetCommonTargets(["document.pdf", "image.png"]));
@@ -60,7 +60,7 @@ public sealed class ConversionCapabilitiesTests
     public void Audio_and_video_menus_only_contain_compatible_targets()
     {
         Assert.Equal([ConversionTarget.Flac, ConversionTarget.M4a, ConversionTarget.Aac, ConversionTarget.Ogg], ConversionCapabilities.GetCommonTargets(["one.MP3", "two.wav"]));
-        Assert.Equal([ConversionTarget.Mkv, ConversionTarget.WebM], ConversionCapabilities.GetCommonTargets(["one.mp4", "two.mov"]));
+        Assert.Equal([ConversionTarget.Mp3, ConversionTarget.Wav, ConversionTarget.Flac, ConversionTarget.M4a, ConversionTarget.Mkv, ConversionTarget.WebM], ConversionCapabilities.GetCommonTargets(["one.mp4", "two.mov"]));
         Assert.Empty(ConversionCapabilities.GetCommonTargets(["one.wav", "two.mp4"]));
         Assert.DoesNotContain(ConversionTarget.Mp4, ConversionCapabilities.GetTargets("one.M4V"));
     }

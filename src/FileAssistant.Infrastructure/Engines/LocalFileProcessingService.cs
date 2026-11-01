@@ -15,16 +15,16 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     private readonly SemaphoreSlim previewGate = new(1, 1);
     private readonly SemaphoreSlim conversionGate = new(1, 1);
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".txt", ".md", ".json", ".csv", ".xml", ".xaml", ".yaml", ".yml", ".log", ".cs", ".js", ".ts", ".css", ".html", ".py", ".ini" };
+        { ".txt", ".md", ".json", ".csv", ".tsv", ".xml", ".xaml", ".yaml", ".yml", ".log", ".cs", ".js", ".ts", ".css", ".html", ".py", ".ini" };
 
     public IReadOnlyList<ProcessingEngineInfo> Engines =>
     [
         Describe("magick", "Magick.NET", typeof(MagickImage), "图片预览、图片格式转换", () => _ = MagickNET.Version),
         new("ffmpeg", "FFmpeg", EnginePackageCatalog.Ffmpeg.Version, "视频首帧、音频与视频格式转换", FfmpegReady(), Path.GetDirectoryName(paths.FfmpegExecutable)!),
-        new("libreoffice", "LibreOffice 文档引擎", EnginePackageCatalog.LibreOffice.Version, "DOC/DOCX/ODT/RTF/TXT 互转与 PDF 输出（按需下载）",
+        new("libreoffice", "LibreOffice 文档引擎", EnginePackageCatalog.LibreOffice.Version, "文本文档、表格、演示互转与 PDF 输出（按需下载）",
             paths.OfficeExecutable is { } office && File.Exists(office), paths.OfficeExecutable ?? "设置 → 引擎管理 → 下载文档引擎"),
         Describe("pdfium", "PDFium / PDFiumCore", typeof(PDFiumCore.fpdfview), "PDF 首页预览、页面导出图片", PdfiumEngine.EnsureAvailable),
-        Describe("pdfpig", "PdfPig", typeof(UglyToad.PdfPig.Writer.PdfDocumentBuilder), "图片生成 PDF")
+        Describe("pdfpig", "PdfPig", typeof(UglyToad.PdfPig.Writer.PdfDocumentBuilder), "图片/多页 TIFF 生成 PDF、PDF 提取文字")
     ];
 
     private bool FfmpegReady() => new[] { "ffmpeg.exe", "ffprobe.exe", "avcodec-62.dll", "avdevice-62.dll", "avfilter-11.dll", "avformat-62.dll", "avutil-60.dll", "swresample-6.dll", "swscale-9.dll" }
@@ -107,6 +107,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
         => Task.Run(async () =>
         {
             token.ThrowIfCancellationRequested();
+            request.Options.Validate();
             var sources = new List<ProcessingSource>();
             var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var supplied in request.Paths)
@@ -121,13 +122,21 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                     var source = Stamp(path);
                     if (Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
                         source = source with { PdfPages = PdfiumEngine.PageCount(path) };
-                    else if (ConversionCapabilities.IsDocument(path))
+                    else if (ConversionCapabilities.IsOffice(path))
                     {
                         if (paths.OfficeExecutable is not { } office || !File.Exists(office))
                             source = source with { Error = "文档引擎尚未安装，请前往设置 → 引擎管理下载 LibreOffice。" };
+                        else if (ConversionCapabilities.IsSpreadsheet(path) && request.Target is ConversionTarget.Csv or ConversionTarget.Tsv)
+                            source = source with { Sheets = await new LibreOfficeEngine(office).GetSheetsAsync(path, request, token) };
                     }
                     else if (ConversionCapabilities.IsAudio(path) || ConversionCapabilities.IsVideo(path))
-                        await new FfmpegConverter(paths.FfmpegExecutable).CheckAsync(path, token);
+                        source = source with { AudioTracks = await new FfmpegConverter(paths.FfmpegExecutable).CheckAsync(path, request, token) };
+                    else if (ConversionCapabilities.IsImage(path))
+                    {
+                        source = source with { Frames = MagickImageEngine.FrameCount(path) };
+                        if (request.Target == ConversionTarget.Pdf && !(ConversionCapabilities.IsTiff(path) && request.Options.AllTiffPages) && request.Options.Frame > source.Frames)
+                            source = source with { Error = $"帧/页不存在（共 {source.Frames} 帧/页）。" };
+                    }
                     else if (!ConversionCapabilities.IsImage(path))
                         source = source with { Error = "当前尚未接入此文件格式。" };
                     sources.Add(source);
@@ -170,24 +179,25 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                 if (File.Exists(target) || Directory.Exists(target)) throw new FileProcessingException("输出位置已被其他文件占用，请重新预览计划。");
                 Directory.CreateDirectory(directory);
                 progress?.Report(new(completed, plan.ReadyCount, $"正在转换 {item.SourceLabel}"));
-                if (ConversionCapabilities.IsDocument(item.Sources[0].Path))
+                if (ConversionCapabilities.IsOffice(item.Sources[0].Path))
                 {
                     if (office is null) throw new FileProcessingException("文档引擎尚未安装，请前往设置 → 引擎管理。");
-                    await new LibreOfficeEngine(office).ConvertAsync(item.Sources[0].Path, temporary, plan.Request.Target, token);
+                    await new LibreOfficeEngine(office).ConvertAsync(item.Sources[0].Path, temporary, plan.Request, item.Sheet, token);
                 }
                 else if (ConversionCapabilities.IsAudioTarget(plan.Request.Target) || ConversionCapabilities.IsVideoTarget(plan.Request.Target))
-                    await media.ConvertAsync(item.Sources[0].Path, temporary, plan.Request.Target, token);
+                    await media.ConvertAsync(item.Sources[0].Path, temporary, plan.Request, token);
                 else using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
-                    if (plan.Request.Target == ConversionTarget.Pdf) PdfPigEngine.Create(item.Sources, stream, token);
-                    else
+                    if (plan.Request.Target == ConversionTarget.Pdf) PdfPigEngine.Create(item.Sources, stream, token, plan.Request.Options);
+                    else if (plan.Request.Target == ConversionTarget.Txt) PdfPigEngine.ExtractText(item.Sources[0].Path, stream, token);
+                    else if (item.PdfPage is { } page)
                     {
-                        using var image = item.PdfPage is { } page
-                            ? PdfiumEngine.Render(item.Sources[0].Path, page, plan.Request.PdfDpi, null, token)
-                            : MagickImageEngine.Read(item.Sources[0].Path);
+                        using var image = PdfiumEngine.Render(item.Sources[0].Path, page, plan.Request.PdfDpi, null, token);
+                        MagickImageEngine.Resize(image, plan.Request.Options.MaximumEdge);
                         token.ThrowIfCancellationRequested();
                         MagickImageEngine.Write(image, stream, plan.Request.Target, plan.Request.Quality);
                     }
+                    else MagickImageEngine.Convert(item.Sources[0].Path, stream, plan.Request, item.ImageFrame ?? plan.Request.Options.Frame - 1, token);
                     stream.Flush(flushToDisk: true);
                 }
                 foreach (var source in item.Sources) Verify(source);
@@ -199,7 +209,12 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
             }
             catch (OperationCanceledException) { results.Add(new(item, null, "已取消此项。")); }
             catch (Exception error) { results.Add(new(item, null, Friendly(error).Message)); }
-            finally { DeleteTemporary(temporary); }
+            finally
+            {
+                try { if (File.Exists(temporary)) File.Delete(temporary); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                { results.Add(new(item, null, $"临时文件清理失败：{temporary}")); }
+            }
             completed++;
             progress?.Report(new(completed, plan.ReadyCount, results[^1].Message));
         }
@@ -226,6 +241,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     private static FileProcessingException Friendly(Exception error) => error switch
     {
         FileProcessingException processing => processing,
+        MagickException magick => new("图片引擎无法处理此文件：" + magick.Message, magick),
         FileNotFoundException or DirectoryNotFoundException => new("文件或目录已移动、删除，请重新添加。", error),
         UnauthorizedAccessException => new("没有访问此文件或输出位置的权限。", error),
         DllNotFoundException or BadImageFormatException => new("本地引擎组件不可用，请检查安装或引擎管理。", error),
@@ -236,7 +252,11 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     { try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
     private void TrimCache()
     {
-        var files = new DirectoryInfo(paths.CacheDirectory).EnumerateFiles("*.png").OrderByDescending(file => file.LastWriteTimeUtc).Skip(200);
-        foreach (var file in files) DeleteTemporary(file.FullName);
+        long bytes = 0; var count = 0;
+        foreach (var file in new DirectoryInfo(paths.CacheDirectory).EnumerateFiles("*.png").OrderByDescending(file => file.LastWriteTimeUtc))
+        {
+            bytes += file.Length; count++;
+            if (count > 200 || bytes > 256L * 1024 * 1024) DeleteTemporary(file.FullName);
+        }
     }
 }

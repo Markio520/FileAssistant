@@ -5,6 +5,16 @@ namespace FileAssistant.Core.Tests;
 public sealed class SearchRulesTests
 {
     [Theory]
+    [InlineData(SearchKind.Documents, "ods")]
+    [InlineData(SearchKind.Documents, "odp")]
+    [InlineData(SearchKind.Documents, "odt")]
+    [InlineData(SearchKind.Documents, "tsv")]
+    [InlineData(SearchKind.Images, "ico")]
+    [InlineData(SearchKind.Images, "heif")]
+    public void Conversion_formats_remain_visible_in_shared_type_filters(SearchKind kind, string extension)
+        => Assert.True(SearchRules.Compile(new() { Kind = kind }).Matches(new(@"C:\sample." + extension, false, 1, null)));
+
+    [Theory]
     [InlineData(SearchKind.Audio, "歌曲.MP3")]
     [InlineData(SearchKind.Archives, "打包.zip")]
     [InlineData(SearchKind.Documents, "文档.pdf")]

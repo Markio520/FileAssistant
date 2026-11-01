@@ -95,6 +95,51 @@ public sealed class MediaConversionTests : IDisposable
         }
         await Run(ffmpeg, ["-v", "error", "-xerror", "-i", path, "-f", "null", "-"]);
     }
+
+    [Theory]
+    [InlineData(ConversionTarget.Mp3, "mp3")]
+    [InlineData(ConversionTarget.Wav, "pcm_s16le")]
+    [InlineData(ConversionTarget.M4a, "aac")]
+    [InlineData(ConversionTarget.Flac, "flac")]
+    public async Task Video_audio_extraction_selects_second_track_and_checks_actual_signal(ConversionTarget target, string codec)
+    {
+        var source = Path.Combine(root, "two-tracks.mkv");
+        await Run(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=red:size=64x48:duration=0.5", "-f", "lavfi", "-i", "sine=frequency=440:duration=0.5", "-f", "lavfi", "-i", "sine=frequency=880:duration=0.5",
+            "-map", "0:v", "-map", "1:a", "-map", "2:a", "-c:v", "mpeg4", "-c:a", "flac", "-shortest", source]);
+        var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, "out"), target, Settings: new(AudioTrack: 2, SampleRate: 22050, AudioBitrateKbps: 128)), default);
+        Assert.Contains("音轨 2 / 2", plan.Items[0].Description);
+        var report = await service.ConvertAsync(plan, null, default);
+        Assert.True(report.Outputs.Count == 1, string.Join(";", report.Items.Select(item => item.Message)));
+        var output = report.Outputs[0].FullPath;
+        await AssertStreams(output, codec);
+        var probe = await Run(Path.Combine(Path.GetDirectoryName(ffmpeg)!, "ffprobe.exe"), ["-v", "error", "-show_streams", "-of", "json", output]);
+        using var json = JsonDocument.Parse(probe); var track = Assert.Single(json.RootElement.GetProperty("streams").EnumerateArray());
+        Assert.Equal("22050", track.GetProperty("sample_rate").GetString());
+        var pcm = Path.Combine(root, "decoded.pcm");
+        await Run(ffmpeg, ["-v", "error", "-i", output, "-ac", "1", "-ar", "22050", "-f", "s16le", pcm]);
+        var bytes = await File.ReadAllBytesAsync(pcm); var crossings = 0;
+        for (var i = 2; i + 1 < bytes.Length; i += 2) if (BitConverter.ToInt16(bytes, i - 2) <= 0 && BitConverter.ToInt16(bytes, i) > 0) crossings++;
+        var frequency = crossings / (bytes.Length / 2.0 / 22050);
+        Assert.InRange(frequency, 800, 960);
+    }
+
+    [Fact]
+    public async Task Silent_video_audio_extraction_is_rejected_but_video_conversion_still_works()
+    {
+        var source = Path.Combine(root, "silent.mp4");
+        await Run(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=red:size=128x72:duration=0.2", "-c:v", "mpeg4", source]);
+        var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, "out"), ConversionTarget.Mp3), default);
+        Assert.Equal(0, plan.ReadyCount); Assert.Contains("没有音轨", plan.Items[0].Error);
+        var request = new ConversionRequest([source], Path.Combine(root, "out"), ConversionTarget.Mp4, Settings: new(Mode: ConversionMode.Process, MaximumEdge: 64, VideoBitrateKbps: 500));
+        var report = await service.ConvertAsync(await service.CreatePlanAsync(request, default), null, default);
+        var output = Assert.Single(report.Outputs);
+        var probe = await Run(Path.Combine(Path.GetDirectoryName(ffmpeg)!, "ffprobe.exe"), ["-v", "error", "-show_streams", "-of", "json", output.FullPath]);
+        using var json = JsonDocument.Parse(probe); var video = Assert.Single(json.RootElement.GetProperty("streams").EnumerateArray());
+        Assert.Equal(64, video.GetProperty("width").GetInt32()); Assert.Equal("h264", video.GetProperty("codec_name").GetString());
+        await Run(ffmpeg, ["-v", "error", "-xerror", "-i", output.FullPath, "-f", "null", "-"]);
+        var missing = await service.CreatePlanAsync(request with { Settings = new(AudioTrack: 2) }, default);
+        Assert.Equal(0, missing.ReadyCount);
+    }
     private static async Task<string> Run(string executable, IEnumerable<string> arguments)
     {
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };

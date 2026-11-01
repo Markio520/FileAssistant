@@ -66,7 +66,13 @@ public sealed partial class FileInputView
         return null;
     }
     private void Files_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
-    { if (RowAt(e.OriginalSource)?.FolderId is { } id) { ViewModel.EnterFolder(id); e.Handled = true; } }
+    {
+        if (choosing || !ViewModel.CanReceiveFiles || RowAt(e.OriginalSource)?.FolderId is not { } id) return;
+        e.Handled = true;
+        var target = ViewModel;
+        // Finish the row selection gesture before replacing its item containers.
+        DispatcherQueue.TryEnqueue(() => { if (!choosing && ReferenceEquals(ViewModel, target)) target.EnterFolder(id); });
+    }
     private async void Files_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == VirtualKey.Enter && ViewModel.SelectionCount == 1 && ViewModel.SelectedFolderIds.Count == 1) { ViewModel.EnterFolder(ViewModel.SelectedFolderIds[0]); e.Handled = true; }
@@ -118,15 +124,15 @@ public sealed partial class FileInputView
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(Item("从列表移除", Remove_Click));
     }
-    private void Row_DragStarting(UIElement sender, DragStartingEventArgs e)
+    private void Files_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
-        if (!ViewModel.CanReceiveFiles || choosing || ViewModel.HasSamples || sender is not FrameworkElement { Tag: WorkspaceFile row }) { e.Cancel = true; return; }
-        if (!FileList.SelectedItems.Contains(row)) { FileList.SelectedItems.Clear(); FileList.SelectedItems.Add(row); }
-        currentDrag = new(Guid.NewGuid().ToString("N"), ViewModel, FileList.SelectedItems.OfType<WorkspaceFile>().ToArray());
+        var items = e.Items.OfType<WorkspaceFile>().ToArray();
+        if (!ViewModel.CanReceiveFiles || choosing || ViewModel.HasSamples || items.Length == 0) { e.Cancel = true; return; }
+        currentDrag = new(Guid.NewGuid().ToString("N"), ViewModel, items);
         e.Data.SetData(DragKey, currentDrag.Token);
         e.Data.RequestedOperation = DataPackageOperation.Copy | DataPackageOperation.Move;
     }
-    private void Row_DropCompleted(UIElement sender, DropCompletedEventArgs args) { currentDrag = null; ClearDropHighlight(); }
+    private void Files_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) { currentDrag = null; ClearDropHighlight(); }
     private static InputDrag? InternalDrag(DataPackageView data) => currentDrag is { } drag && data.Contains(DragKey) ? drag : null;
     private bool CanDrop(DataPackageView data, Guid destination)
     {

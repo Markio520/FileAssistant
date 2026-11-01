@@ -51,16 +51,21 @@ public partial class ConversionViewModel : ObservableObject
     public bool CanRun => CanBuildPlan && Plan?.ReadyCount > 0;
     public bool HasFormatError => FormatFeedback.Length > 0;
     public string? FormatButtonContent => HasFormats ? null : HasMissingEngine ? "请先安装所需引擎" : ConversionEntries.Count == 0 ? "请先添加文件" : "无可用输出格式";
-    public bool ShowQuality => TargetFormatValue is (int)ConversionTarget.Jpeg or (int)ConversionTarget.WebP or (int)ConversionTarget.Avif;
-    public bool ShowPdfDpi => HasFormats && ConversionEntries.Any(file => file.Extension.Equals("pdf", StringComparison.OrdinalIgnoreCase));
+    public bool ShowQuality => TargetFormatValue is (int)ConversionTarget.Jpeg or (int)ConversionTarget.Avif || TargetFormatValue == (int)ConversionTarget.WebP && !ConversionEntries.Any(file => ConversionCapabilities.IsAnimation(file.FullPath, ConversionTarget.WebP));
+    public bool ShowPdfDpi => HasFormats && Target != ConversionTarget.Txt && ConversionEntries.Any(file => file.Extension.Equals("pdf", StringComparison.OrdinalIgnoreCase));
     public string ConversionNote => ConversionEntries.Any(file => ConversionCapabilities.IsDocument(file.FullPath))
         ? "每份文档单独输出；字体和复杂排版可能影响分页。TXT 使用 UTF-8，输出 TXT 只保留文本。启动文档引擎可能需要较长时间，可随时取消。"
+        : ConversionEntries.Any(file => ConversionCapabilities.IsSpreadsheet(file.FullPath))
+            ? "工作簿互转保留全部表；CSV/TSV 每表一个文件，0 表示全部，其他数字指定表序号。UTF-8 默认；TSV 固定 Tab，CSV 使用所选分隔符。可选公式或计算结果；导入等号开头内容默认作为文本，数字按英语区域规则识别。CSV/TSV 不保留样式、图表与多表结构；PDF 遵循打印区域和分页设置。"
+        : ConversionEntries.Any(file => ConversionCapabilities.IsPresentation(file.FullPath))
+            ? "每份演示单独输出。PDF 是静态页面，不保留动画、转场、交互和音视频播放。缺少字体会替换；复杂图表、版式和分页请核对。"
         : ConversionEntries.Any(file => ConversionCapabilities.IsVideo(file.FullPath))
-            ? "转换首个视频流与首个音轨，字幕和其他轨道不输出。MP4/MKV/MOV 使用 H.264 + AAC；WebM 使用 VP9 + Opus。"
-        : ConversionEntries.Any(file => ConversionCapabilities.IsAudio(file.FullPath)) ? "转换首个音轨。WAV 使用 16 位 PCM；有损音源转 FLAC/WAV 不会恢复已丢失的音质。"
-        : TargetFormatValue == (int)ConversionTarget.Pdf ? "按输入列表顺序合并为一个 PDF，一图一页；多帧图片读取第一帧。"
-        : TargetFormatValue is (int)ConversionTarget.Jpeg or (int)ConversionTarget.Bmp ? "透明区域将使用白色背景。多帧图片读取第一帧。"
-        : "多帧图片只读取第一帧；GIF 输出为静态图片。";
+            ? "音轨从 1 开始，计划检查数量并显示所选轨道；音频目标仅提取所选音轨。视频保留首个视频流和所选音轨，字幕/其他轨道不输出。MP4/MKV/MOV 为 H.264 + AAC；WebM 为 VP9 + Opus（48 kHz）。重新编码不保证文件一定变小。"
+        : ConversionEntries.Any(file => ConversionCapabilities.IsAudio(file.FullPath)) ? "按序号选择音轨。WAV 为 16 位 PCM；OGG 使用固定质量 5。有损音源转 FLAC/WAV 不会恢复音质。重新编码不保证变小。"
+        : Target == ConversionTarget.Txt ? "按 PDF 页序提取 UTF-8 文本，以换页符分隔；尽力恢复阅读顺序与换行，复杂多栏可能需调整。扫描/空白页明确标记，全部无有效文字时失败；不含 OCR。"
+        : Target == ConversionTarget.Ico ? "生成包含 16、24、32、48、64、128、256 像素的 ICO；等比缩放，空白补透明。"
+        : Target == ConversionTarget.Pdf ? "按列表顺序合并为一个 PDF；TIFF 默认逐页加入，其他多帧图片使用指定帧（默认第 1 帧）。"
+        : "GIF ↔ WebP 保留全部帧、时长与循环，动态 WebP 使用无损编码；GIF 仅支持 256 色和二值透明。TIFF 默认逐页导出，静态单图使用指定帧/页。JPG/BMP 透明处铺白。尺寸为 0 时保留原尺寸；压缩不保证一定变小。";
     public string ScopeSummary => ConversionEntries.Count == 0 ? Input.SelectedFolderIds.Count > 0 ? "所选文件夹为空，请重新选择。" : "当前文件夹没有文件，请先添加要转换的文件。"
         : Input.SelectionCount > 0 ? Input.SelectedFolderIds.Count > 0 ? $"已选 {Input.SelectedFolderIds.Count:N0} 个文件夹" + (Input.SelectionCount > Input.SelectedFolderIds.Count ? $"、{Input.SelectionCount - Input.SelectedFolderIds.Count:N0} 个文件" : "") + $" · 实际转换 {ConversionEntries.Count:N0} 项（含子文件夹，已去重）。" : $"仅转换已选 {ConversionEntries.Count:N0} 项。"
         : Input.CurrentFolderId != Guid.Empty ? $"将转换“{Input.CurrentFolderName}”及子文件夹中的全部 {ConversionEntries.Count:N0} 个文件。"
@@ -85,8 +90,8 @@ public partial class ConversionViewModel : ObservableObject
         inputIdentity = identity;
         Invalidate();
         var entries = ConversionEntries;
-        IReadOnlyList<ConversionTarget> targets = entries.Any(file => file.IsFolder) ? [] : ConversionCapabilities.GetCommonTargets(entries.Select(file => file.FullPath));
-        var requiredEngine = entries.Any(file => ConversionCapabilities.IsDocument(file.FullPath)) ? "libreoffice"
+        IReadOnlyList<ConversionTarget> targets = entries.Any(file => file.IsFolder) ? [] : ConversionCapabilities.GetCommonTargets(entries.Select(file => file.FullPath), (ConversionMode)ModeValue);
+        var requiredEngine = entries.Any(file => ConversionCapabilities.IsOffice(file.FullPath)) ? "libreoffice"
             : entries.Any(file => ConversionCapabilities.IsAudio(file.FullPath) || ConversionCapabilities.IsVideo(file.FullPath)) ? "ffmpeg" : null;
         HasMissingEngine = targets.Count > 0 && requiredEngine is not null && !availableEngines.Contains(requiredEngine);
         if (HasMissingEngine) targets = [];
@@ -104,13 +109,17 @@ public partial class ConversionViewModel : ObservableObject
             var unsupported = entries.Where(file => ConversionCapabilities.GetTargets(file.FullPath).Count == 0)
                 .Select(file => file.Extension.Length == 0 ? "无扩展名文件" : file.Extension.ToUpperInvariant()).Distinct().ToArray();
             var kinds = entries.GroupBy(file => ConversionCapabilities.IsImage(file.FullPath) ? "图片" : ConversionCapabilities.IsDocument(file.FullPath) ? "文本文档"
+                : ConversionCapabilities.IsSpreadsheet(file.FullPath) ? "表格" : ConversionCapabilities.IsPresentation(file.FullPath) ? "演示文稿"
                 : ConversionCapabilities.IsAudio(file.FullPath) ? "音频" : ConversionCapabilities.IsVideo(file.FullPath) ? "视频" : file.Extension.Equals("pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : "其他文件").ToArray();
             var scope = string.Join("、", kinds.Select(group => $"{group.Count():N0} 项{group.Key}"));
             FormatFeedback = $"当前包含 {scope}，没有共同的输出格式，请按类型分开选择。";
             if (unsupported.Length > 0) FormatFeedback += $" 当前尚未接入：{string.Join("、", unsupported)}。";
+            if (ShowProcessing) FormatFeedback += " 压缩/兼容模式只支持同一输出格式的图片或音视频；文档请使用格式转换。";
         }
         OnPropertyChanged(nameof(ShowPdfDpi));
         OnPropertyChanged(nameof(ConversionNote));
+        OnPropertyChanged(nameof(ShowQuality));
+        NotifyOptions();
     }
     public void RefreshCapabilities()
     {
@@ -121,7 +130,7 @@ public partial class ConversionViewModel : ObservableObject
     }
     [RelayCommand] private void OpenEngineManagement() => EngineManagementRequested?.Invoke(this, EventArgs.Empty);
     private void Invalidate() { optionsRevision++; Plan = null; }
-    partial void OnTargetFormatValueChanged(int value) => Invalidate();
+    partial void OnTargetFormatValueChanged(int value) { Invalidate(); NotifyOptions(); }
     partial void OnQualityChanged(double value) => Invalidate();
     partial void OnPdfDpiChanged(double value) => Invalidate();
     partial void OnOutputDirectoryChanged(string value) => Invalidate();
@@ -140,8 +149,9 @@ public partial class ConversionViewModel : ObservableObject
         using var current = new CancellationTokenSource(); cancellation = current;
         try
         {
+            var settings = ReadSettings();
             var result = await service.CreatePlanAsync(new(entries.Select(file => file.FullPath).ToArray(),
-                OutputDirectory.Trim(), (ConversionTarget)TargetFormatValue, (int)quality, (int)pdfDpi), current.Token);
+                OutputDirectory.Trim(), (ConversionTarget)TargetFormatValue, (int)quality, (int)pdfDpi, settings), current.Token);
             if (identity != InputIdentity || revision != optionsRevision) { Feedback = "输入文件或参数已变化，请重新预览计划。"; return; }
             Plan = result; Feedback = "计划已就绪，已有同名文件将自动编号保留。";
         }

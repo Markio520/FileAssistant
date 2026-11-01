@@ -16,6 +16,40 @@ public sealed class ConversionWorkflowTests
     private readonly ProcessingJobsViewModel jobs = new();
 
     [Fact]
+    public async Task Processing_mode_filters_same_formats_and_every_parameter_invalidates_plan()
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.jpg", false, 1, null)]);
+        vm.ModeValue = (int)ConversionMode.Process;
+        Assert.Equal([(int)ConversionTarget.Jpeg], vm.Formats.Select(option => option.Value));
+        foreach (var change in new Action[] { () => vm.Quality = 70, () => vm.MaximumEdge = 1280, () => vm.PresetValue = 1,
+            () => vm.AudioTrack = 2, () => vm.AudioBitrate = 160, () => vm.VideoBitrate = 900, () => vm.SampleRate = 44100,
+            () => vm.Frame = 2, () => vm.AllTiffPages = false, () => vm.Sheet = 1, () => vm.EncodingValue = 1,
+            () => vm.SeparatorValue = 1, () => vm.ExportFormulas = true, () => vm.ImportFormulas = true })
+        {
+            await vm.BuildPlanCommand.ExecuteAsync(null); Assert.NotNull(vm.Plan);
+            change(); Assert.Null(vm.Plan); Assert.False(vm.CanRun);
+        }
+        vm.ModeValue = 0; Assert.DoesNotContain(vm.Formats, option => option.Value == (int)ConversionTarget.Jpeg);
+    }
+
+    [Fact]
+    public async Task Spreadsheet_options_reach_the_plan_and_pdf_text_hides_raster_settings()
+    {
+        service.Engines = [new("libreoffice", "Office", "test", "documents", true, "test")];
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.xlsx", false, 1, null)]);
+        vm.TargetFormatValue = (int)ConversionTarget.Tsv; vm.Sheet = 2; vm.ExportFormulas = true; vm.EncodingValue = 1;
+        Assert.True(vm.ShowSheet); await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal(2, service.Request!.Options.Sheet); Assert.True(service.Request.Options.ExportFormulas);
+        Assert.Equal(DelimitedEncoding.Gb18030, service.Request.Options.Encoding);
+        vm.Sheet = double.NaN; await vm.BuildPlanCommand.ExecuteAsync(null); Assert.Null(vm.Plan); Assert.Contains("有效", vm.Feedback);
+        input.AddSearchFiles([new(@"C:\test\text.pdf", false, 1, null)]); input.SetSelection([input.VisibleFiles.Last()]);
+        vm.TargetFormatValue = (int)ConversionTarget.Txt; Assert.False(vm.ShowPdfDpi); Assert.False(vm.ShowQuality);
+        await vm.BuildPlanCommand.ExecuteAsync(null); Assert.NotNull(vm.Plan);
+    }
+
+    [Fact]
     public async Task Missing_optional_engine_has_an_install_entry_and_refresh_enables_document_targets()
     {
         var vm = new ConversionViewModel(service, input, outputs, jobs);
@@ -42,7 +76,7 @@ public sealed class ConversionWorkflowTests
         input.AddSearchFiles([new(@"C:\test\three.mp4", false, 1, null)]);
         Assert.Empty(vm.Formats); Assert.False(vm.HasMissingEngine);
         input.SetSelection([input.VisibleFiles[2]]);
-        Assert.Equal([(int)ConversionTarget.Mkv, (int)ConversionTarget.Mov, (int)ConversionTarget.WebM], vm.Formats.Select(option => option.Value));
+        Assert.Equal([(int)ConversionTarget.Mp3, (int)ConversionTarget.Wav, (int)ConversionTarget.Flac, (int)ConversionTarget.M4a, (int)ConversionTarget.Mkv, (int)ConversionTarget.Mov, (int)ConversionTarget.WebM], vm.Formats.Select(option => option.Value));
     }
 
     [Fact]

@@ -32,6 +32,8 @@
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
     <Content Include="..\..\third-party\licenses\**\*" Link="Licenses\$([System.String]::Copy('%(RecursiveDir)%(Filename)').Replace('.', '_').Replace('\', '_'))%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\third-party\SOURCE-ACCESS.md" Link="Licenses\SOURCE-ACCESS.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\third-party\ffmpeg-build-configuration.txt" Link="Licenses\ffmpeg-build-configuration.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\engines\manifest.json" Link="Engines\manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

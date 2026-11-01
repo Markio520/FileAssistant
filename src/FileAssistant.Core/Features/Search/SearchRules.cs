@@ -9,8 +9,8 @@ public static class SearchRules
 {
     public static string Extensions(SearchKind kind) => kind switch
     {
-        SearchKind.Images => "jpg;jpeg;png;webp;gif;bmp;tif;tiff;heic;avif;svg",
-        SearchKind.Documents => "pdf;doc;docx;xls;xlsx;ppt;pptx;txt;md;csv;rtf;log",
+        SearchKind.Images => "jpg;jpeg;png;webp;gif;bmp;tif;tiff;heic;heif;avif;svg;ico",
+        SearchKind.Documents => "pdf;doc;docx;odt;xls;xlsx;ods;ppt;pptx;odp;txt;md;csv;tsv;rtf;log",
         SearchKind.Archives => "zip;7z;rar;tar;gz;bz2;xz",
         SearchKind.Video => "mp4;mov;mkv;avi;wmv;webm;m4v",
         SearchKind.Audio => "mp3;wav;flac;aac;m4a;ogg;wma",

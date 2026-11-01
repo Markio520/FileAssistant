@@ -25,6 +25,7 @@
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceFile.cs" Link="Sources/WorkspaceFile.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Workspace/WorkspaceSamples.cs" Link="Sources/WorkspaceSamples.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Convert/ConversionViewModel.cs" Link="Sources/ConversionViewModel.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Convert/ConversionViewModel.Options.cs" Link="Sources/ConversionViewModel.Options.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Outputs/OutputsViewModel.cs" Link="Sources/OutputsViewModel.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Outputs/OutputEntry.cs" Link="Sources/OutputEntry.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Tasks/ProcessingJob.cs" Link="Sources/ProcessingJob.cs" />

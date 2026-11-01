@@ -7,6 +7,7 @@ using FileAssistant.Infrastructure.Engines;
 namespace FileAssistant.Infrastructure.Tests;
 
 [Trait("Category", "Office")]
+[Collection("Office")]
 public sealed class OfficeConversionTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "FileAssistant-office-test-" + Guid.NewGuid().ToString("N"));

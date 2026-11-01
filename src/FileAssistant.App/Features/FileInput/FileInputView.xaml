@@ -159,7 +159,8 @@
                                 <ListView x:Name="FileList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.VisibleFiles}" SelectionMode="Extended"
                                     IsMultiSelectCheckBoxEnabled="True" ItemContainerStyle="{StaticResource WorkspaceListItemStyle}"
                                     SelectionChanged="FileList_SelectionChanged" Margin="4,6" Visibility="{x:Bind ViewModel.ShowList, Mode=OneWay}"
-                                    DoubleTapped="Files_DoubleTapped" KeyDown="Files_KeyDown"
+                                    KeyDown="Files_KeyDown" CanDragItems="True" CanReorderItems="False"
+                                    DragItemsStarting="Files_DragItemsStarting" DragItemsCompleted="Files_DragItemsCompleted"
                                     ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                     AutomationProperties.Name="待处理文件列表">
                                     <ListView.KeyboardAccelerators>
@@ -169,7 +170,6 @@
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="local:WorkspaceFile">
                                             <Grid ColumnSpacing="12" Background="Transparent" ToolTipService.ToolTip="{x:Bind FullPath}" Tag="{x:Bind}"
-                                                CanDrag="True" DragStarting="Row_DragStarting" DropCompleted="Row_DropCompleted"
                                                 AllowDrop="True" DragOver="Row_DragOver" DragLeave="Row_DragLeave" Drop="Row_Drop">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="{Binding Name, Source={StaticResource FileColumns}, Converter={StaticResource ColumnWidth}}" />

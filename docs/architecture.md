@@ -98,6 +98,8 @@ FileAssistant/
 
 ### 目录职责补充
 
+- 下一阶段转换参数集中在 Core `ConversionSettings`，工作表、帧/页、音轨元数据进入 `ProcessingSource`，一对多输出在 `ConversionPlanner` 中展开，计划持有参数快照。`ConversionViewModel.Options` 管理适用控件、预设及参数失效，不调用引擎。Office 工作表目录从 XLSX/ODS 容器读取，XLS 用现有 LibreOffice 临时转 ODS 检查；逐表导出使用明确的过滤参数。动态 WebP 的 `WebpAnimationWriter` 只负责容器封装，像素编解码仍交给 Magick.NET，避免引入另一个图像引擎。
+
 - 软件文件夹由 Core `Features/FileCollections` 维护树、成员和可移植转交包，真实磁盘文件夹保留 `SearchFile.IsFolder` 语义。`WorkspaceViewModel.Collections` 维护独立输入实例的范围、导航及自动保存，`FileInputView.Collections` 与共用文件夹选择/来源选择控件负责交互。Infrastructure `JsonFileCollectionStore` 执行分实例原子保存和失效引用恢复；页面不直接读写保存文件。详细规则见 [软件文件夹设计](file-collections-design.md)。
 - 输入整理的单步撤销集中在 `WorkspaceViewModel.Undo`，快照只影响该输入实例；恢复后仍走统一通知、计划失效及自动保存流程，不持久化撤销历史。`CollectionSourceSelection` 管理导入弹窗的跨目录选择，与来源页本身的选择分离；来源、目标、层级选项统一编排在 `FileCollectionDialogs`，不由页面串联多个选择弹窗。
 

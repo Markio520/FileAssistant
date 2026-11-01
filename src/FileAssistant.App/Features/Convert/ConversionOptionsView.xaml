@@ -5,6 +5,9 @@
         <TextBlock Text="本地格式转换" FontSize="20" FontWeight="SemiBold" />
         <TextBlock Text="{x:Bind ViewModel.ScopeSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" ToolTipService.ToolTip="软件文件夹会展开并去重。列表筛选只影响显示；未选择文件时，使用当前软件文件夹及子文件夹的全部输入。" />
         <StackPanel Spacing="6">
+            <TextBlock Text="处理模式" />
+            <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Modes}" SelectedValue="{x:Bind ViewModel.ModeValue, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="转换处理模式" />
+            <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Presets}" SelectedValue="{x:Bind ViewModel.PresetValue, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowProcessing, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="压缩预设" />
             <TextBlock Text="输出格式" />
             <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Formats, Mode=OneWay}" SelectedValue="{x:Bind ViewModel.TargetFormatValue, Mode=TwoWay}"
                 ButtonContent="{x:Bind ViewModel.FormatButtonContent, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanSelectFormat, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="转换输出格式" />
@@ -14,6 +17,24 @@
             <Button Content="选择输出文件夹…" Click="PickOutput_Click" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalAlignment="Stretch" />
             <NumberBox Header="JPEG / WebP / AVIF 质量（1–100）" Minimum="1" Maximum="100" Value="{x:Bind ViewModel.Quality, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" Visibility="{x:Bind ViewModel.ShowQuality, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
             <NumberBox Header="PDF 导出分辨率（DPI）" Minimum="72" Maximum="600" Value="{x:Bind ViewModel.PdfDpi, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" Visibility="{x:Bind ViewModel.ShowPdfDpi, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+            <ContentControl IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" HorizontalContentAlignment="Stretch"><StackPanel Spacing="8">
+                <NumberBox Header="最长边（像素；0 保留原尺寸）" Minimum="0" Maximum="16384" Value="{x:Bind ViewModel.MaximumEdge, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowSize, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                <NumberBox Header="音轨序号（从 1 开始）" Minimum="1" Value="{x:Bind ViewModel.AudioTrack, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowMedia, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                <NumberBox Header="音频码率（kbps）" Minimum="32" Maximum="320" Value="{x:Bind ViewModel.AudioBitrate, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowAudioBitrate, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                <NumberBox Header="视频码率（kbps）" Minimum="100" Maximum="100000" Value="{x:Bind ViewModel.VideoBitrate, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowVideo, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.SampleRates}" SelectedValue="{x:Bind ViewModel.SampleRate, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowSampleRate, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="音频采样率" />
+                <CheckBox Content="TIFF 处理全部页面" IsChecked="{x:Bind ViewModel.AllTiffPages, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowTiffPages, Mode=OneWay}" />
+                <NumberBox Header="静态图帧 / 页（从 1 开始）" Minimum="1" Value="{x:Bind ViewModel.Frame, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowFrame, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                <StackPanel Visibility="{x:Bind ViewModel.ShowDelimited, Mode=OneWay}" Spacing="6">
+                    <TextBlock Text="CSV / TSV 编码" />
+                    <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Encodings}" SelectedValue="{x:Bind ViewModel.EncodingValue, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="表格文本编码" />
+                    <TextBlock Text="CSV 分隔符（TSV 固定 Tab）" Visibility="{x:Bind ViewModel.ShowSeparator, Mode=OneWay}" />
+                    <controls:SelectionDropDown ItemsSource="{x:Bind ViewModel.Separators}" SelectedValue="{x:Bind ViewModel.SeparatorValue, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowSeparator, Mode=OneWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="CSV 分隔符" />
+                    <CheckBox Content="导入时将等号开头内容作为公式" IsChecked="{x:Bind ViewModel.ImportFormulas, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowImportFormulas, Mode=OneWay}" />
+                    <NumberBox Header="导出工作表（0 全部，其他为表序号）" Minimum="0" Value="{x:Bind ViewModel.Sheet, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowSheet, Mode=OneWay}" SpinButtonPlacementMode="Compact" />
+                    <CheckBox Content="导出公式（不选则导出计算结果）" IsChecked="{x:Bind ViewModel.ExportFormulas, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ShowSheet, Mode=OneWay}" />
+                </StackPanel>
+            </StackPanel></ContentControl>
         </StackPanel>
         <TextBlock Text="{x:Bind ViewModel.ConversionNote, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource WorkspaceCaptionStyle}" />
         <Button Content="预览转换计划" Command="{x:Bind ViewModel.BuildPlanCommand}" HorizontalAlignment="Stretch" />

@@ -35,6 +35,8 @@ Windows App SDK 的开源源码许可与 NuGet 分发包所附条款分别记录
 
 ## 本地预览与转换引擎（2026-10-30）
 
+2026-10-31 扩展复用相同版本，没有新增运行时依赖。LibreOffice 仍独立进程调用，Magick.NET/FFmpeg/PDFium/PdfPig 保留各自许可。新增随运行目录交付的 [源码获取说明](SOURCE-ACCESS.md) 和实际 FFmpeg 构建选项；自有代码许可证不在本轮确定。
+
 版本和调用位置见 [engines/README.md](../engines/README.md)，NuGet 内容由锁文件固定；FFmpeg 由 [manifest.json](../engines/manifest.json) 固定下载地址、版本及 SHA-256。当前仅验证 Windows x64。
 
 | 组件 | 版本 | 当前用途 | 许可与声明 |
