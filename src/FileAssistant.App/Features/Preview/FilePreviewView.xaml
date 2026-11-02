@@ -2,7 +2,7 @@
     x:Class="FileAssistant.App.Features.Preview.FilePreviewView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Border MinHeight="168" MaxHeight="240" Background="{ThemeResource WorkspaceAccentSubtleBrush}" CornerRadius="8" Padding="8">
+    <Border x:Name="PreviewFrame" MinHeight="168" MaxHeight="240" Background="{ThemeResource WorkspaceAccentSubtleBrush}" CornerRadius="8" Padding="8">
         <Grid>
             <FontIcon x:Name="FallbackIcon" Glyph="&#xE8A5;" FontSize="48" Foreground="{ThemeResource WorkspaceAccentBrush}" />
             <Image x:Name="PreviewImage" Stretch="Uniform" MaxHeight="216" AutomationProperties.Name="文件内容预览" />

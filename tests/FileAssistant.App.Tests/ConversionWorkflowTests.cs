@@ -15,6 +15,27 @@ public sealed class ConversionWorkflowTests
     private readonly OutputsViewModel outputs = new(new Interaction());
     private readonly ProcessingJobsViewModel jobs = new();
 
+    [Theory]
+    [InlineData(0, "没有可转换的文件")]
+    [InlineData(1, "部分文件不可处理")]
+    [InlineData(2, "计划已就绪")]
+    public async Task Plan_feedback_distinguishes_rejected_partial_and_ready_inputs(int readyCount, string feedback)
+    {
+        var vm = new ConversionViewModel(service, input, outputs, jobs);
+        input.AddSearchFiles([new(@"C:\test\one.jpg", false, 1, null), new(@"C:\test\two.jpg", false, 1, null)]);
+        var request = new ConversionRequest(input.EffectiveEntries.Select(file => file.FullPath).ToArray(), vm.OutputDirectory, (ConversionTarget)vm.TargetFormatValue);
+        service.Pending = Task.FromResult(new ConversionPlan(request, request.Paths.Select((path, index) =>
+            new ConversionPlanItem([new(path, 1, 1)], index < readyCount ? Path.Combine(vm.OutputDirectory, $"{index}.png") : null,
+                Error: index < readyCount ? null : "macOS 元数据，请添加原文件。")).ToArray()));
+        await vm.BuildPlanCommand.ExecuteAsync(null);
+        Assert.Equal(readyCount, vm.Plan!.ReadyCount);
+        Assert.Equal(2 - readyCount, vm.Plan.RejectedCount);
+        Assert.Equal(readyCount > 0, vm.CanRun);
+        Assert.Equal(readyCount > 0, vm.RunCommand.CanExecute(null));
+        Assert.Contains(feedback, vm.Feedback);
+        Assert.Contains($"{2 - readyCount} 项不可处理", vm.PlanSummary);
+    }
+
     [Fact]
     public async Task Processing_mode_filters_same_formats_and_every_parameter_invalidates_plan()
     {

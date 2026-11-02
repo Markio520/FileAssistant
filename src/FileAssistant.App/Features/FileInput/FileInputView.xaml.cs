@@ -1,3 +1,4 @@
+using FileAssistant.App.Controls;
 using FileAssistant.App.Features.Workspace;
 using FileAssistant.Core.Features.Search;
 using FileAssistant.Core.Features.FileCollections;
@@ -24,13 +25,12 @@ public sealed partial class FileInputView : UserControl
     private bool choosing;
     public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register(
         nameof(ViewModel), typeof(WorkspaceViewModel), typeof(FileInputView),
-        new PropertyMetadata(null, (owner, _) => { var view = (FileInputView)owner; view.Bindings.Update(); view.UpdateInspector(); }));
+        new PropertyMetadata(null, (owner, _) => { var view = (FileInputView)owner; view.Bindings.Update(); view.UpdateInspector(); view.AttachDisplayModel(); }));
     public WorkspaceViewModel ViewModel
     {
         get => (WorkspaceViewModel)GetValue(ViewModelProperty);
         set => SetValue(ViewModelProperty, value);
     }
-    public WorkspaceViewModel TaskViewModel => App.Workspace;
     public static readonly DependencyProperty OperationContentProperty = DependencyProperty.Register(nameof(OperationContent), typeof(UIElement),
         typeof(FileInputView), new PropertyMetadata(null, (owner, _) => ((FileInputView)owner).UpdateInspector()));
     public UIElement? OperationContent { get => (UIElement?)GetValue(OperationContentProperty); set => SetValue(OperationContentProperty, value); }
@@ -43,25 +43,40 @@ public sealed partial class FileInputView : UserControl
         InitializeComponent();
         // Item containers handle selection gestures; navigation must also receive handled double taps.
         FileList.AddHandler(UIElement.DoubleTappedEvent, new DoubleTappedEventHandler(Files_DoubleTapped), handledEventsToo: true);
-        Loaded += (_, _) => UpdateInspector();
+        FolderTreeArea.AddHandler(UIElement.DragOverEvent, new DragEventHandler(FolderTree_DragOver), handledEventsToo: true);
+        FolderTreeArea.AddHandler(UIElement.DropEvent, new DragEventHandler(FolderTree_Drop), handledEventsToo: true);
+        Loaded += (_, _) => { UpdateInspector(); AttachDisplayModel(); SetFileView(showTiles); };
+        Unloaded += (_, _) => DetachDisplayModel();
         KeyDown += Input_KeyDown;
     }
 
     private void UpdateInspector()
     {
-        if (IsLoaded && ViewModel is not null) Inspector.ShowParameters(ViewModel.IsFunctionInput, OperationContent);
+        if (!IsLoaded || ViewModel is null) return;
+        var custom = OperationContent is not null;
+        Inspector.ShowParameters(ViewModel.IsFunctionInput, hideSingleTabHeader: true);
+        Inspector.Visibility = custom ? Visibility.Collapsed : Visibility.Visible;
+        OperationPresenter.Content = OperationContent;
+        OperationPresenter.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+        InspectorTitle.Text = custom ? "转换设置" : ViewModel.IsFunctionInput ? "复制设置" : "文件信息";
     }
 
-    public void FocusQuery() => SearchBox.Focus(FocusState.Programmatic);
+    public void FocusQuery() => FilterSearch.FocusQuery();
     private FileInputColumnWidths ColumnWidths => (FileInputColumnWidths)Resources["FileColumns"];
-    private void FilesViewport_SizeChanged(object sender, SizeChangedEventArgs e) => ColumnWidths.FitViewport(e.NewSize.Width);
-    private void FilesHeader_SizeChanged(object sender, SizeChangedEventArgs e) => FilesHeaderRow.Height = new GridLength(e.NewSize.Height);
-    private void Column_ResizeRequested(object? sender, double delta)
-        => ColumnWidths.Resize((string)((FrameworkElement)sender!).Tag, delta);
-
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void FilesViewport_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput) ViewModel.SearchText = sender.Text;
+        ColumnWidths.FitViewport(e.NewSize.Width);
+        if (!showTiles) TableContent.MinWidth = ColumnWidths.MinimumTableWidth;
+        UpdateTileWidth();
+    }
+    private void FilesHeader_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!showTiles) FilesHeaderRow.Height = new GridLength(e.NewSize.Height);
+    }
+    private void Column_ResizeRequested(object? sender, double delta)
+    {
+        ColumnWidths.Resize((string)((FrameworkElement)sender!).Tag, delta);
+        if (!showTiles) TableContent.MinWidth = ColumnWidths.MinimumTableWidth;
     }
 
     private async void PickFiles_Click(object sender, RoutedEventArgs e) => await ChooseAsync(FileInputSources.PickFilesAsync);
@@ -158,13 +173,18 @@ public sealed partial class FileInputView : UserControl
 
     private async void ImportDetails_Click(object sender, RoutedEventArgs e)
     {
-        if (choosing || !ViewModel.HasImportDetails) return;
+        if (choosing || !ViewModel.HasFooterMessage) return;
         choosing = true;
         try
         {
-            await new ContentDialog { Title = "添加结果明细", XamlRoot = XamlRoot, RequestedTheme = ActualTheme, CloseButtonText = "关闭",
-                Content = new ListView { ItemsSource = ViewModel.ImportReport.Items, SelectionMode = ListViewSelectionMode.None,
-                    MaxHeight = 420, ItemTemplate = (DataTemplate)Resources["ImportResultTemplate"] } }.ShowAsync();
+            var content = new StackPanel { Spacing = 12 };
+            foreach (var message in new[] { ViewModel.InputFeedback, ViewModel.PersistenceMessage, ViewModel.UndoMessage }.Where(message => !string.IsNullOrWhiteSpace(message)))
+                content.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+            if (ViewModel.HasImportDetails)
+                content.Children.Add(new ListView { ItemsSource = ViewModel.ImportReport.Items, SelectionMode = ListViewSelectionMode.None,
+                    MaxHeight = 300, ItemTemplate = (DataTemplate)Resources["ImportResultTemplate"] });
+            await new ContentDialog { Title = "操作明细", XamlRoot = XamlRoot, RequestedTheme = ActualTheme, CloseButtonText = "关闭",
+                Content = new ScrollViewer { Content = content, MaxHeight = 420, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } }.ShowAsync();
         }
         catch (Exception) { ViewModel.InputFeedback = "暂时无法打开明细，请关闭其他弹窗后重试。"; }
         finally { choosing = false; }
@@ -173,8 +193,15 @@ public sealed partial class FileInputView : UserControl
     private void FindFiles_Click(object sender, RoutedEventArgs e) => SearchRequested?.Invoke(this, EventArgs.Empty);
     private void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (MarqueeSelection.GetIsSelecting(FileList)) return;
+        UpdateFileSelection(e.AddedItems.OfType<WorkspaceFile>().LastOrDefault());
+    }
+    private void Files_MarqueeCommitted(object? sender, EventArgs e) => UpdateFileSelection(FileList.SelectedItems.OfType<WorkspaceFile>().LastOrDefault());
+    private void UpdateFileSelection(WorkspaceFile? current = null)
+    {
+        if (switchingView || ViewModel is null) return;
         ViewModel.SetSelection(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray(),
-            e.AddedItems.OfType<WorkspaceFile>().LastOrDefault() ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault());
+            current ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault());
     }
     private async void Remove_Click(object sender, RoutedEventArgs e) => await RemoveSelectionAsync();
     private async void Remove_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { args.Handled = true; await RemoveSelectionAsync(); }

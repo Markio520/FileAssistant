@@ -27,6 +27,27 @@
             </Grid>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
+    <Style x:Key="VerticalResizeThumbStyle" TargetType="Thumb" BasedOn="{StaticResource ResizeThumbStyle}">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="AutomationProperties.HelpText" Value="上下拖动或使用上下方向键调整高度，双击恢复填满" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb">
+            <Grid Background="Transparent">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                        <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                    </VisualStateGroup>
+                    <VisualStateGroup x:Name="FocusStates">
+                        <VisualState x:Name="Unfocused" />
+                        <VisualState x:Name="PointerFocused" />
+                        <VisualState x:Name="Focused"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource WorkspaceAccentBrush}" /></VisualState.Setters></VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Border x:Name="Divider" Height="3" Width="48" CornerRadius="1.5" Background="{ThemeResource WorkspaceBorderBrush}" />
+            </Grid>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style x:Key="ResizeHandleStyle" TargetType="controls:ResizeHandle">
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />

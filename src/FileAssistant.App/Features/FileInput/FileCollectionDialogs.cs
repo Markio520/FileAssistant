@@ -62,16 +62,21 @@ public static class FileCollectionDialogs
         catch (ArgumentException error) { target.InputFeedback = error.Message; return new([], error.Message); }
         catch (Exception) { target.InputFeedback = "加入失败，请检查文件和目标文件夹后重试。"; return new([], target.InputFeedback); }
     }
-    public static async Task RenameOrCreateAsync(WorkspaceViewModel target, FrameworkElement owner, Guid? id = null)
+    public static async Task RenameOrCreateAsync(WorkspaceViewModel target, FrameworkElement owner, Guid? id = null, Guid? parent = null)
     {
+        var destination = parent ?? target.CurrentFolderId;
         var name = new TextBox { Header = "文件夹名称", Text = id is { } folder ? target.FolderName(folder) : "新建文件夹", MaxLength = 120 };
         var error = new TextBlock { TextWrapping = TextWrapping.Wrap };
-        var panel = new StackPanel { Spacing = 12 }; panel.Children.Add(name); panel.Children.Add(error);
+        var panel = new StackPanel { Spacing = 12 };
+        if (id is null)
+            panel.Children.Add(new TextBlock { Text = "新建到：" + target.FolderChoices.First(folder => folder.Id == destination).Label,
+                TextWrapping = TextWrapping.Wrap, Style = (Style)Application.Current.Resources["WorkspaceCaptionStyle"] });
+        panel.Children.Add(name); panel.Children.Add(error);
         var dialog = Dialog(owner, id is null ? "新建文件夹" : "重命名文件夹", panel, id is null ? "创建" : "保存");
         dialog.Opened += (_, _) => { name.Focus(FocusState.Programmatic); name.SelectAll(); };
         dialog.PrimaryButtonClick += (_, args) =>
         {
-            try { if (id is { } existing) target.RenameFolder(existing, name.Text); else target.CreateFolder(name.Text); }
+            try { if (id is { } existing) target.RenameFolder(existing, name.Text); else target.CreateFolder(name.Text, destination); }
             catch (ArgumentException issue) { error.Text = issue.Message; args.Cancel = true; }
         };
         await dialog.ShowAsync();

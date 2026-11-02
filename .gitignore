@@ -15,6 +15,7 @@
 /coverage/
 /artifacts/
 /.impeccable/review/
+/.impeccable/questions/
 AppPackages/
 BundleArtifacts/
 *.binlog

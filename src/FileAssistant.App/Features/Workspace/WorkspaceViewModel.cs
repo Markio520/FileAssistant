@@ -44,10 +44,11 @@ public partial class WorkspaceViewModel : ObservableObject
     public string SendAllToConversionLabel => $"当前文件夹全部 {ScopeEntries.Count:N0} 项 → 格式转换";
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasInputFeedback), nameof(HasFooterMessage))] public partial string InputFeedback { get; set; } = string.Empty;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasImportDetails))] public partial FileImportReport ImportReport { get; set; } = FileImportReport.Empty;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasImportDetails), nameof(OperationMenuLabel))] public partial FileImportReport ImportReport { get; set; } = FileImportReport.Empty;
     [ObservableProperty] public partial string LoadingMessage { get; set; } = string.Empty;
     public bool HasInputFeedback => InputFeedback.Length > 0;
     public bool HasImportDetails => ImportReport.Items.Count > 0;
+    public string OperationMenuLabel => CanRetrySave ? "操作 · 保存失败" : ImportReport.HasIssues ? "操作 · 添加有提示" : "操作";
 
     public ObservableCollection<WorkspaceFile> VisibleFiles { get; } = [];
     public IReadOnlyList<SearchFile> SearchEntries => collection.Resolve(Guid.Empty).Select(entry => entry.File).ToArray();
@@ -129,7 +130,7 @@ public partial class WorkspaceViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(ShowSelectionHint), nameof(SelectionSummary), nameof(PreviewName),
-        nameof(PreviewType), nameof(PreviewSize), nameof(PreviewPath), nameof(PreviewDate), nameof(PreviewGlyph), nameof(PreviewOrigin), nameof(PreviewFile), nameof(PreviewStatus))]
+        nameof(PreviewType), nameof(PreviewSize), nameof(PreviewPath), nameof(PreviewDate), nameof(PreviewGlyph), nameof(PreviewOrigin), nameof(PreviewFile), nameof(PreviewStatus), nameof(HasPreviewStatus))]
     public partial WorkspaceFile? SelectedFile { get; set; }
 
     [ObservableProperty]
@@ -151,7 +152,7 @@ public partial class WorkspaceViewModel : ObservableObject
     public partial bool IsQueueExpanded { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TaskSummary), nameof(ShowEmptyQueue))]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyQueue))]
     public partial bool IsTaskExample { get; set; }
 
     public bool HasFiles => files.Count > 0 || collection.Folders.Count > 0;
@@ -170,13 +171,13 @@ public partial class WorkspaceViewModel : ObservableObject
         : SelectedFolderIds.Count > 0 ? SelectedEntries.Count == 0 ? "所选文件夹为空"
             : $"已选 {SelectedFolderIds.Count:N0} 个文件夹" + (SelectionCount > SelectedFolderIds.Count ? $"、{SelectionCount - SelectedFolderIds.Count:N0} 个文件" : "") + $" · 实际 {SelectedEntries.Count:N0} 项（含子文件夹，已去重）"
         : $"已选 {SelectionCount:N0} 项";
-    public string TaskSummary => IsTaskExample ? "复制进度示例 · 62% · 未执行文件操作" : "暂无进行中的任务";
     public string PreviewName => SelectedFile?.Name ?? "选择一个文件";
     public string PreviewType => SelectedFile?.Type ?? string.Empty;
     public string PreviewSize => SelectedFile?.SizeLabel ?? string.Empty;
     public string PreviewPath => SelectedFile?.FullPath ?? string.Empty;
     public string PreviewDate => SelectedFile?.Modified ?? string.Empty;
     public string PreviewStatus => SelectedFile?.ReferenceError ?? (SelectedFile?.IsCollectionFolder == true ? "软件内的文件引用分组。磁盘原件留在原位置。" : string.Empty);
+    public bool HasPreviewStatus => PreviewStatus.Length > 0;
     public string PreviewGlyph => SelectedFile?.Glyph ?? "\uE8A5";
     public SearchFile? PreviewFile => SelectedFile?.ReferenceError is null ? SelectedFile?.Source : null;
 

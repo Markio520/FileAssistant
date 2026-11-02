@@ -1,5 +1,5 @@
+using FileAssistant.App.Controls;
 using FileAssistant.App.Features.FileInput;
-using FileAssistant.App.Features.Workspace;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -9,13 +9,15 @@ namespace FileAssistant.App.Features.Outputs;
 public sealed partial class OutputsView : UserControl
 {
     public OutputsViewModel ViewModel => App.Outputs;
-    public WorkspaceViewModel QueueViewModel => App.Workspace;
     public event EventHandler<FileInputTransferEventArgs>? FilesForConversionRequested;
     public event EventHandler<FileInputTransferEventArgs>? FilesForCopyRequested;
     public OutputsView() { InitializeComponent(); Loaded += (_, _) => Inspector.ShowParameters(false); }
     public void FocusQuery() => Query.Focus(FocusState.Programmatic);
     private void Query_TextChanged(object sender, TextChangedEventArgs e) => ViewModel.SearchText = Query.Text;
-    private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e) => ViewModel.SetSelection(Files.SelectedItems.Cast<OutputEntry>().ToArray());
+    private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    { if (!MarqueeSelection.GetIsSelecting(Files)) UpdateFileSelection(); }
+    private void Files_MarqueeCommitted(object? sender, EventArgs e) => UpdateFileSelection();
+    private void UpdateFileSelection() => ViewModel.SetSelection(Files.SelectedItems.Cast<OutputEntry>().ToArray());
     private void Files_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e) => ViewModel.OpenCommand.Execute(null);
     private async void AddToStaging_Click(object sender, RoutedEventArgs e)
     {

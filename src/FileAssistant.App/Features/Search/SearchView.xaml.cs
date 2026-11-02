@@ -1,3 +1,4 @@
+using FileAssistant.App.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -68,8 +69,14 @@ public sealed partial class SearchView : UserControl
     }
     private void Results_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (MarqueeSelection.GetIsSelecting(ResultsList)) return;
+        UpdateResultSelection(e.AddedItems.OfType<SearchResultItem>().LastOrDefault());
+    }
+    private void Results_MarqueeCommitted(object? sender, EventArgs e) => UpdateResultSelection(ResultsList.SelectedItems.OfType<SearchResultItem>().LastOrDefault());
+    private void UpdateResultSelection(SearchResultItem? current = null)
+    {
         ViewModel.SelectionCount = ResultsList.SelectedItems.Count;
-        ViewModel.SelectedItem = e.AddedItems.OfType<SearchResultItem>().LastOrDefault() ?? ResultsList.SelectedItems.OfType<SearchResultItem>().FirstOrDefault();
+        ViewModel.SelectedItem = current ?? ResultsList.SelectedItems.OfType<SearchResultItem>().FirstOrDefault();
     }
     private async void Add_Click(object sender, RoutedEventArgs e) => await ViewModel.AddSelectionAsync(ResultsList.SelectedItems.OfType<SearchResultItem>().ToArray());
     private void Workspace_Click(object sender, RoutedEventArgs e) => WorkspaceRequested?.Invoke(this, EventArgs.Empty);

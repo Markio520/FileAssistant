@@ -1,0 +1,127 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="WorkspaceMarqueeFillBrush" Color="{ThemeResource AppAccentColor}" Opacity="0.12" />
+    <Style x:Key="WorkspaceMarqueeStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource WorkspaceMarqueeFillBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource WorkspaceAccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style x:Key="WorkspaceCenteredStateStyle" TargetType="ContentControl">
+        <Setter Property="Padding" Value="24,16" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl">
+            <ScrollViewer x:Name="StateViewport" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <Grid MinHeight="{Binding ViewportHeight, ElementName=StateViewport}">
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                        Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </ScrollViewer>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="WorkspaceNavigationButtonStyle" TargetType="ToggleButton">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{ThemeResource WorkspaceSecondaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="NavRoot" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="NavRoot.Background" Value="{ThemeResource WorkspaceSubtleBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="NavRoot.Background" Value="{ThemeResource WorkspaceHoverBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Checked"><VisualState.Setters><Setter Target="NavRoot.Background" Value="{ThemeResource WorkspaceNavigationSelectedBrush}" /><Setter Target="NavContent.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="CheckedPointerOver"><VisualState.Setters><Setter Target="NavRoot.Background" Value="{ThemeResource WorkspaceHoverBrush}" /><Setter Target="NavContent.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="CheckedPressed"><VisualState.Setters><Setter Target="NavRoot.Background" Value="{ThemeResource WorkspaceHoverBrush}" /><Setter Target="NavContent.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="NavRoot.Opacity" Value="0.45" /></VisualState.Setters></VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <ContentPresenter x:Name="NavContent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="WorkspaceIconButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="6" /><Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{ThemeResource WorkspaceSecondaryBrush}" />
+    </Style>
+    <Style x:Key="WorkspaceSurfaceStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource WorkspaceSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource WorkspaceBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style x:Key="WorkspaceFolderTreeItemStyle" TargetType="TreeViewItem">
+        <Setter Property="Padding" Value="0,0,6,0" /><Setter Property="Margin" Value="0,1" />
+        <Setter Property="MinHeight" Value="30" /><Setter Property="MinWidth" Value="0" /><Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Foreground" Value="{ThemeResource WorkspaceTextBrush}" />
+        <Setter Property="GlyphBrush" Value="{ThemeResource WorkspaceSecondaryBrush}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TreeViewItem">
+                    <Grid x:Name="ContentPresenterGrid" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceHoverBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="CollapsedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="ExpandedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceAccentSubtleBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="CollapsedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="ExpandedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Selected"><VisualState.Setters><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceAccentSubtleBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="CollapsedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="ExpandedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="PointerOverSelected"><VisualState.Setters><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceHoverBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="CollapsedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="ExpandedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="PressedSelected"><VisualState.Setters><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceHoverBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="CollapsedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /><Setter Target="ExpandedGlyph.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="ContentPresenterGrid.Opacity" Value="0.45" /></VisualState.Setters></VisualState>
+                                <VisualState x:Name="SelectedDisabled"><VisualState.Setters><Setter Target="ContentPresenterGrid.Opacity" Value="0.45" /><Setter Target="ContentPresenterGrid.Background" Value="{ThemeResource WorkspaceAccentSubtleBrush}" /><Setter Target="ContentPresenter.Foreground" Value="{ThemeResource WorkspaceNavigationTextBrush}" /></VisualState.Setters></VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Grid Padding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TreeViewItemTemplateSettings.Indentation}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid x:Name="ExpandCollapseChevron" Background="Transparent" Opacity="{TemplateBinding GlyphOpacity}">
+                                <TextBlock x:Name="CollapsedGlyph" Foreground="{TemplateBinding GlyphBrush}" Width="12" Height="12" Visibility="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TreeViewItemTemplateSettings.CollapsedGlyphVisibility}" FontSize="{TemplateBinding GlyphSize}" Text="{TemplateBinding CollapsedGlyph}" FontFamily="{StaticResource SymbolThemeFontFamily}" Padding="2" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" IsTextScaleFactorEnabled="False" IsHitTestVisible="False" />
+                                <TextBlock x:Name="ExpandedGlyph" Foreground="{TemplateBinding GlyphBrush}" Width="12" Height="12" Visibility="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TreeViewItemTemplateSettings.ExpandedGlyphVisibility}" FontSize="{TemplateBinding GlyphSize}" Text="{TemplateBinding ExpandedGlyph}" FontFamily="{StaticResource SymbolThemeFontFamily}" Padding="2" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" IsTextScaleFactorEnabled="False" IsHitTestVisible="False" />
+                            </Grid>
+                            <ContentPresenter x:Name="ContentPresenter" Grid.Column="1" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="{TemplateBinding Padding}" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="WorkspaceTileItemStyle" TargetType="ListViewItem">
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+        <Setter Property="FontSize" Value="{ThemeResource ControlContentThemeFontSize}" />
+        <Setter Property="Background" Value="{ThemeResource ListViewItemBackground}" />
+        <Setter Property="Foreground" Value="{ThemeResource ListViewItemForeground}" />
+        <Setter Property="TabNavigation" Value="Local" />
+        <Setter Property="IsHoldingEnabled" Value="True" />
+        <Setter Property="Padding" Value="5" />
+        <Setter Property="Margin" Value="6" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MinWidth" Value="{ThemeResource ListViewItemMinWidth}" />
+        <Setter Property="MinHeight" Value="{ThemeResource ListViewItemMinHeight}" />
+        <Setter Property="AllowDrop" Value="False" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="1" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource ListViewItemFocusVisualPrimaryBrush}" />
+        <Setter Property="FocusVisualPrimaryThickness" Value="2" />
+        <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource ListViewItemFocusVisualSecondaryBrush}" />
+        <Setter Property="FocusVisualSecondaryThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListViewItem">
+                    <ListViewItemPresenter x:Name="Root" ContentTransitions="{TemplateBinding ContentTransitions}" Control.IsTemplateFocusTarget="True" FocusVisualMargin="{TemplateBinding FocusVisualMargin}" FocusVisualPrimaryBrush="{TemplateBinding FocusVisualPrimaryBrush}" FocusVisualPrimaryThickness="{TemplateBinding FocusVisualPrimaryThickness}" FocusVisualSecondaryBrush="{TemplateBinding FocusVisualSecondaryBrush}" FocusVisualSecondaryThickness="{TemplateBinding FocusVisualSecondaryThickness}" SelectionCheckMarkVisualEnabled="{ThemeResource ListViewItemSelectionCheckMarkVisualEnabled}" CheckBrush="{ThemeResource ListViewItemCheckBrush}" CheckBoxBrush="{ThemeResource ListViewItemCheckBoxBrush}" DragBackground="{ThemeResource ListViewItemDragBackground}" DragForeground="{ThemeResource ListViewItemDragForeground}" FocusBorderBrush="{ThemeResource ListViewItemFocusBorderBrush}" FocusSecondaryBorderBrush="{ThemeResource ListViewItemFocusSecondaryBorderBrush}" PlaceholderBackground="{ThemeResource ListViewItemPlaceholderBackground}" PointerOverBackground="{ThemeResource ListViewItemBackgroundPointerOver}" PointerOverForeground="{ThemeResource ListViewItemForegroundPointerOver}" SelectedBackground="{ThemeResource ListViewItemBackgroundSelected}" SelectedForeground="{ThemeResource ListViewItemForegroundSelected}" SelectedPointerOverBackground="{ThemeResource ListViewItemBackgroundSelectedPointerOver}" PressedBackground="{ThemeResource ListViewItemBackgroundPressed}" SelectedPressedBackground="{ThemeResource ListViewItemBackgroundSelectedPressed}" DisabledOpacity="{ThemeResource ListViewItemDisabledThemeOpacity}" DragOpacity="{ThemeResource ListViewItemDragThemeOpacity}" ReorderHintOffset="{ThemeResource ListViewItemReorderHintThemeOffset}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" ContentMargin="{TemplateBinding Padding}" CheckMode="Overlay" CornerRadius="{TemplateBinding CornerRadius}" CheckPressedBrush="{ThemeResource ListViewItemCheckPressedBrush}" CheckDisabledBrush="{ThemeResource ListViewItemCheckDisabledBrush}" CheckBoxPointerOverBrush="{ThemeResource ListViewItemCheckBoxPointerOverBrush}" CheckBoxPressedBrush="{ThemeResource ListViewItemCheckBoxPressedBrush}" CheckBoxDisabledBrush="{ThemeResource ListViewItemCheckBoxDisabledBrush}" CheckBoxSelectedBrush="{ThemeResource ListViewItemCheckBoxSelectedBrush}" CheckBoxSelectedPointerOverBrush="{ThemeResource ListViewItemCheckBoxSelectedPointerOverBrush}" CheckBoxSelectedPressedBrush="{ThemeResource ListViewItemCheckBoxSelectedPressedBrush}" CheckBoxSelectedDisabledBrush="{ThemeResource ListViewItemCheckBoxSelectedDisabledBrush}" CheckBoxBorderBrush="{ThemeResource ListViewItemCheckBoxBorderBrush}" CheckBoxPointerOverBorderBrush="{ThemeResource ListViewItemCheckBoxPointerOverBorderBrush}" CheckBoxPressedBorderBrush="{ThemeResource ListViewItemCheckBoxPressedBorderBrush}" CheckBoxDisabledBorderBrush="{ThemeResource ListViewItemCheckBoxDisabledBorderBrush}" CheckBoxCornerRadius="{ThemeResource ListViewItemCheckBoxCornerRadius}" SelectionIndicatorCornerRadius="{ThemeResource ListViewItemSelectionIndicatorCornerRadius}" SelectionIndicatorVisualEnabled="False" SelectionIndicatorBrush="{ThemeResource ListViewItemSelectionIndicatorBrush}" SelectionIndicatorPointerOverBrush="{ThemeResource ListViewItemSelectionIndicatorPointerOverBrush}" SelectionIndicatorPressedBrush="{ThemeResource ListViewItemSelectionIndicatorPressedBrush}" SelectionIndicatorDisabledBrush="{ThemeResource ListViewItemSelectionIndicatorDisabledBrush}" SelectedDisabledBackground="{ThemeResource ListViewItemBackgroundSelectedDisabled}" />
+
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

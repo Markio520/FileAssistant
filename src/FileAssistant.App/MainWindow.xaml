@@ -18,7 +18,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="文件操作助手" Height="48">
+        <TitleBar x:Name="AppTitleBar" Title="文件操作助手" Height="32" Foreground="{ThemeResource WorkspaceTextBrush}">
             <TitleBar.IconSource>
                 <FontIconSource Glyph="&#xE8B7;" />
             </TitleBar.IconSource>

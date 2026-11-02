@@ -14,5 +14,7 @@
             AutomationProperties.Name="调整侧栏宽度" ToolTipService.ToolTip="拖动或用左右方向键调整侧栏宽度" />
         <ContentPresenter x:Name="PanePresenter" Grid.Column="2" Content="{x:Bind PaneContent, Mode=OneWay}"
             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        <ContentPresenter x:Name="CollapsedPresenter" Grid.Column="2" Content="{x:Bind CollapsedPaneContent, Mode=OneWay}"
+            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="Collapsed" />
     </Grid>
 </UserControl>

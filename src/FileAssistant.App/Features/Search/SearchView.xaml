@@ -39,11 +39,10 @@
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Spacing="4">
-                <TextBlock Text="搜索与筛选" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="搜索与筛选" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="找到文件后可加入暂存区，供需要的功能使用。" Foreground="{ThemeResource WorkspaceSecondaryBrush}" FontSize="13" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <controls:ThemeSelectionDropDown />
                 <Button Content="文件暂存区" Click="Workspace_Click" ToolTipService.ToolTip="查看已暂存的文件" />
             </StackPanel>
         </Grid>
@@ -145,10 +144,11 @@
                     <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="2" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
                     <Grid Grid.Row="2">
                         <Grid.RowDefinitions><RowDefinition x:Name="ResultsHeaderRow" Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <ScrollViewer x:Name="ResultsViewport" Grid.RowSpan="2" SizeChanged="ResultsViewport_SizeChanged" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <controls:MarqueeSelection Grid.RowSpan="2" Target="{x:Bind ResultsList}" SelectionCommitted="Results_MarqueeCommitted">
+                        <ScrollViewer x:Name="ResultsViewport" SizeChanged="ResultsViewport_SizeChanged" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
                             <Grid MinWidth="{x:Bind ViewModel.ColumnWidths.MinimumTableWidth, Mode=OneWay}" Width="{Binding ViewportWidth, ElementName=ResultsViewport}">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                                <Border x:Name="ResultsHeader" SizeChanged="ResultsHeader_SizeChanged" Background="{ThemeResource WorkspaceSubtleBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,1" Padding="12,9">
+                                <Border x:Name="ResultsHeader" controls:MarqueeSelection.IsExcluded="True" SizeChanged="ResultsHeader_SizeChanged" Background="{ThemeResource WorkspaceSubtleBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,1" Padding="12,9">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="{x:Bind ViewModel.ColumnWidths.Name, Mode=OneWay, Converter={StaticResource ColumnWidth}}" />
@@ -203,6 +203,7 @@
                                 </ListView>
                             </Grid>
                         </ScrollViewer>
+                        </controls:MarqueeSelection>
                         <ScrollViewer x:Name="EmptyStateViewport" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{x:Bind ViewModel.ShowEmpty, Mode=OneWay}">
                         <StackPanel Spacing="8" MaxWidth="380" Margin="20,12" HorizontalAlignment="Center">
                             <FontIcon Glyph="&#xE721;" FontSize="32" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />

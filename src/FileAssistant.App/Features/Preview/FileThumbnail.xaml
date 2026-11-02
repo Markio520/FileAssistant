@@ -1,0 +1,10 @@
+<UserControl x:Class="FileAssistant.App.Features.Preview.FileThumbnail"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsHitTestVisible="False">
+    <Border Background="{ThemeResource WorkspaceSubtleBrush}" CornerRadius="5">
+        <Grid>
+            <FontIcon x:Name="FallbackIcon" Glyph="&#xE8A5;" FontSize="36" Foreground="{ThemeResource WorkspaceSecondaryBrush}" />
+            <Image x:Name="ThumbnailImage" Stretch="UniformToFill" />
+        </Grid>
+    </Border>
+</UserControl>

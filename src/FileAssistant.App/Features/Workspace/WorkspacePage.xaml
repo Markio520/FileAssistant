@@ -1,69 +1,48 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<Page
-    x:Class="FileAssistant.App.Features.Workspace.WorkspacePage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:input="using:FileAssistant.App.Features.FileInput"
-    xmlns:search="using:FileAssistant.App.Features.Search"
-    xmlns:controls="using:FileAssistant.App.Controls"
-    xmlns:convert="using:FileAssistant.App.Features.Convert"
-    xmlns:outputs="using:FileAssistant.App.Features.Outputs"
-    xmlns:settings="using:FileAssistant.App.Features.Settings"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
-
+<Page x:Class="FileAssistant.App.Features.Workspace.WorkspacePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:input="using:FileAssistant.App.Features.FileInput" xmlns:search="using:FileAssistant.App.Features.Search"
+    xmlns:controls="using:FileAssistant.App.Controls" xmlns:convert="using:FileAssistant.App.Features.Convert"
+    xmlns:outputs="using:FileAssistant.App.Features.Outputs" xmlns:settings="using:FileAssistant.App.Features.Settings"
+    xmlns:workspace="using:FileAssistant.App.Features.Workspace" Background="{ThemeResource WorkspaceBackgroundBrush}">
     <Grid>
-
-        <NavigationView x:Name="Navigation" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
-            IsPaneToggleButtonVisible="False" PaneDisplayMode="Auto" OpenPaneLength="196"
-            CompactPaneLength="52" ExpandedModeThresholdWidth="1140" CompactModeThresholdWidth="0"
-            AlwaysShowHeader="False" Background="{ThemeResource WorkspaceBackgroundBrush}"
-            SelectionChanged="Navigation_SelectionChanged" ItemInvoked="Navigation_ItemInvoked">
-            <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="WorkspaceNavigation" Content="文件暂存区" Tag="workspace" IsSelected="True">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem x:Name="OutputsNavigation" Content="文件输出区" Tag="outputs">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItemHeader Content="文件操作" />
-                <NavigationViewItem x:Name="SearchNavigationItem" Content="搜索与筛选" Tag="search">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="批量创建与改名" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem x:Name="CopyNavigation" Content="复制与整理" Tag="organize">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem x:Name="ConversionNavigation" Content="格式转换" Tag="convert">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="压缩与解压" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xF012;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="核对与清理" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
-            <NavigationView.FooterMenuItems>
-                <NavigationViewItem x:Name="SettingsNavigation" Content="设置" Tag="settings">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="任务队列" Tag="tasks" SelectsOnInvoked="False">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.FooterMenuItems>
-
-            <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Border Background="{ThemeResource WorkspaceSurfaceBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
+            <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Border Width="30" Height="30" CornerRadius="6" Background="{ThemeResource WorkspaceAccentSubtleBrush}"><PathIcon Width="16" Height="16" Data="M0,0 H7 V7 H0 Z M9,0 H16 V7 H9 Z M0,9 H7 V16 H0 Z M9,9 H16 V16 H9 Z" Foreground="{ThemeResource WorkspaceAccentBrush}" /></Border>
+                    <TextBlock x:Name="BrandLabel" Text="文件操作助手" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel x:Name="MainNavigation" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" AutomationProperties.Name="主要功能">
+                    <ToggleButton x:Name="WorkspaceNavigation" Content="文件暂存区" Tag="workspace" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" IsChecked="True" />
+                    <ToggleButton x:Name="SearchNavigationItem" Content="搜索与筛选" Tag="search" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" />
+                    <ToggleButton x:Name="ConversionNavigation" Content="格式转换" Tag="convert" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" />
+                    <ToggleButton x:Name="CopyNavigation" Content="复制与整理" Tag="organize" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" />
+                    <ToggleButton Content="批量创建与改名" Style="{StaticResource WorkspaceNavigationButtonStyle}" IsEnabled="False" ToolTipService.ToolTip="此功能尚未接入。" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ToggleButton x:Name="OutputsNavigation" Tag="outputs" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" AutomationProperties.Name="文件输出区" ToolTipService.ToolTip="文件输出区">
+                        <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE8A5;" FontSize="16" /><TextBlock x:Name="OutputLabel" Text="文件输出区" /></StackPanel>
+                    </ToggleButton>
+                    <Border Width="1" Height="18" Background="{ThemeResource WorkspaceBorderBrush}" Margin="4,0" />
+                    <Button x:Name="TasksNavigation" Click="TaskQueue_Click" Background="Transparent" BorderThickness="0" Padding="8" AutomationProperties.Name="任务队列" ToolTipService.ToolTip="{x:Bind Jobs.Summary, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE9D9;" FontSize="16" /><TextBlock x:Name="QueueLabel" Text="任务队列" FontSize="12" /><InfoBadge Value="{x:Bind Jobs.RunningCount, Mode=OneWay}" Visibility="{x:Bind Jobs.HasRunningJobs, Mode=OneWay}" /></StackPanel>
+                        <FlyoutBase.AttachedFlyout><Flyout x:Name="TaskQueueFlyout" Placement="BottomEdgeAlignedRight" Closed="TaskQueueFlyout_Closed">
+                            <ScrollViewer x:Name="TaskQueueScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><workspace:WorkspaceTaskPanel x:Name="TaskQueuePanel" ViewModel="{x:Bind ViewModel}" /></ScrollViewer>
+                        </Flyout></FlyoutBase.AttachedFlyout>
+                    </Button>
+                    <controls:ThemeSelectionDropDown />
+                    <ToggleButton x:Name="SettingsNavigation" Tag="settings" Style="{StaticResource WorkspaceNavigationButtonStyle}" Click="Navigation_Click" Padding="8" AutomationProperties.Name="设置与引擎管理" ToolTipService.ToolTip="设置与引擎管理"><FontIcon Glyph="&#xE713;" FontSize="16" /></ToggleButton>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="1">
             <input:FileInputView x:Name="StagingPanel" ViewModel="{x:Bind ViewModel}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <input:FileInputView x:Name="CopyPanel" ViewModel="{x:Bind CopyViewModel}" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <search:SearchView x:Name="SearchPanel" Visibility="Collapsed" WorkspaceRequested="Search_WorkspaceRequested" />
             <convert:ConversionView x:Name="ConversionPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <outputs:OutputsView x:Name="OutputsPanel" Visibility="Collapsed" FilesForConversionRequested="Input_FilesForConversionRequested" FilesForCopyRequested="Input_FilesForCopyRequested" />
             <settings:EnginesView x:Name="SettingsPanel" Visibility="Collapsed" />
-            </Grid>
-        </NavigationView>
+        </Grid>
     </Grid>
 </Page>

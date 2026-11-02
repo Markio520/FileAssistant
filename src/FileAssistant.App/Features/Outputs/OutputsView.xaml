@@ -3,7 +3,7 @@
     xmlns:local="using:FileAssistant.App.Features.Outputs" xmlns:workspace="using:FileAssistant.App.Features.Workspace" xmlns:controls="using:FileAssistant.App.Controls">
     <Grid Margin="24,12,24,20" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Grid><TextBlock Text="文件输出区" FontSize="28" FontWeight="SemiBold"/><controls:ThemeSelectionDropDown HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid>
+        <TextBlock Text="文件输出区" FontSize="22" FontWeight="SemiBold"/>
         <Grid Grid.Row="1" ColumnSpacing="8">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBox x:Name="Query" PlaceholderText="搜索输出文件名或路径" TextChanged="Query_TextChanged" AutomationProperties.Name="搜索输出文件"/>
@@ -12,7 +12,7 @@
         <Border Grid.Row="2" Background="{ThemeResource WorkspaceSurfaceBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="10">
             <controls:ResizablePane x:Name="DetailsHost" PaneWidth="280">
                 <controls:ResizablePane.MainContent>
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid Margin="12" ColumnSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
@@ -30,7 +30,8 @@
                         </ScrollViewer>
                         <ToggleButton Grid.Column="1" Content="文件信息" IsChecked="{x:Bind DetailsHost.IsPaneOpen, Mode=TwoWay}" ToolTipService.ToolTip="显示或收起文件信息侧栏"/>
                     </Grid>
-                    <ListView x:Name="Files" Grid.Row="1" ItemsSource="{x:Bind ViewModel.VisibleFiles}" SelectionMode="Extended" IsMultiSelectCheckBoxEnabled="True"
+                    <controls:MarqueeSelection Grid.Row="1" Target="{x:Bind Files}" SelectionCommitted="Files_MarqueeCommitted">
+                    <ListView x:Name="Files" ItemsSource="{x:Bind ViewModel.VisibleFiles}" SelectionMode="Extended" IsMultiSelectCheckBoxEnabled="True"
                         SelectionChanged="Files_SelectionChanged" DoubleTapped="Files_DoubleTapped" ItemContainerStyle="{StaticResource WorkspaceListItemStyle}" Margin="4" AutomationProperties.Name="实际输出文件列表">
                         <ListView.ItemTemplate><DataTemplate x:DataType="local:OutputEntry">
                             <StackPanel Spacing="4" ToolTipService.ToolTip="{x:Bind FullPath}">
@@ -40,9 +41,9 @@
                             </StackPanel>
                         </DataTemplate></ListView.ItemTemplate>
                     </ListView>
+                    </controls:MarqueeSelection>
                     <TextBlock Grid.Row="1" Text="暂无输出文件" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource WorkspaceSecondaryBrush}"/>
                     <StackPanel Grid.Row="2" Spacing="5" Margin="12"><TextBlock Text="{x:Bind ViewModel.Summary, Mode=OneWay}" Style="{StaticResource WorkspaceCaptionStyle}"/><TextBlock Text="{x:Bind ViewModel.Feedback, Mode=OneWay}" TextWrapping="Wrap" FontSize="12"/></StackPanel>
-                    <workspace:WorkspaceTaskPanel Grid.Row="3" ViewModel="{x:Bind QueueViewModel}" Margin="8"/>
                 </Grid>
                 </controls:ResizablePane.MainContent>
                 <controls:ResizablePane.PaneContent>

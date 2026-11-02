@@ -30,6 +30,83 @@ public sealed class LocalProcessingTests : IDisposable
         return path;
     }
 
+    private string MacMetadata(string name)
+    {
+        var path = Path.Combine(root, name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        // AppleDouble v2 with one 32-byte Finder Info entry.
+        var bytes = Convert.FromHexString("00051607000200004D6163204F53205820202020202020200001000000090000002600000020")
+            .Concat(new byte[32]).ToArray();
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
+
+    [Theory]
+    [InlineData("._1.jpg")]
+    [InlineData("__MACOSX/LS8184/._1.jpg")]
+    [InlineData("renamed.png")]
+    [InlineData("._report.pdf")]
+    [InlineData("._clip.mp4")]
+    [InlineData("._notes.txt")]
+    public async Task AppleDouble_metadata_has_an_actionable_error_before_preview_or_conversion(string name)
+    {
+        var source = MacMetadata(name);
+        var original = await File.ReadAllBytesAsync(source);
+        var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, "out"), ConversionTarget.Png), default);
+        Assert.Equal(0, plan.ReadyCount);
+        Assert.Equal(1, plan.RejectedCount);
+        var item = Assert.Single(plan.Items);
+        Assert.Contains("macOS", item.Error);
+        Assert.Contains("原文件", item.Error);
+        Assert.Contains(Path.GetFileName(source), item.Error);
+        var error = await Assert.ThrowsAsync<FileProcessingException>(() => service.PreviewAsync(source, 256, default));
+        Assert.Equal(item.Error, error.Message);
+        Assert.Empty((await service.ConvertAsync(plan, null, default)).Outputs);
+        Assert.False(Directory.Exists(plan.Request.OutputDirectory));
+        Assert.Equal(original, await File.ReadAllBytesAsync(source));
+    }
+
+    [Theory]
+    [InlineData("._photo.jpg")]
+    [InlineData("__MACOSX/photo.jpg")]
+    [InlineData("__MACOSX/._photo.jpg")]
+    public async Task Real_images_with_metadata_like_names_still_convert_in_a_mixed_batch(string name)
+    {
+        var source = Path.Combine(root, name);
+        Directory.CreateDirectory(Path.GetDirectoryName(source)!);
+        using (var image = new MagickImage(MagickColors.Blue, 80, 40)) image.Write(source, MagickFormat.Jpeg);
+        var metadata = MacMetadata("metadata.jpg");
+        var original = await File.ReadAllBytesAsync(source);
+        Assert.Equal(PreviewKind.Image, (await service.PreviewAsync(source, 256, default)).Kind);
+        var plan = await service.CreatePlanAsync(new([metadata, source], Path.Combine(root, "out"), ConversionTarget.Png), default);
+        Assert.Equal(1, plan.ReadyCount);
+        Assert.Equal(1, plan.RejectedCount);
+        Assert.Contains("macOS", Assert.Single(plan.Items, item => !item.CanRun).Error);
+        var output = Assert.Single((await service.ConvertAsync(plan, null, default)).Outputs);
+        Assert.Equal(Path.GetFullPath(source), Assert.Single(output.SourcePaths));
+        using var decoded = new MagickImage(output.FullPath);
+        Assert.Equal(MagickFormat.Png, decoded.Format);
+        Assert.Equal(80u, decoded.Width);
+        Assert.Equal(original, await File.ReadAllBytesAsync(source));
+    }
+
+    [Theory]
+    [InlineData("", "文件可能损坏或格式不支持")]
+    [InlineData("not a JPEG", "无法读取图片")]
+    public async Task Invalid_images_have_readable_errors_without_decoder_diagnostics(string contents, string previewMessage)
+    {
+        var source = Path.Combine(root, "broken.jpg");
+        await File.WriteAllTextAsync(source, contents);
+        var plan = await service.CreatePlanAsync(new([source], Path.Combine(root, "out"), ConversionTarget.Png), default);
+        Assert.Equal(0, plan.ReadyCount);
+        Assert.Contains("无法读取图片", Assert.Single(plan.Items).Error);
+        Assert.DoesNotContain("error/jpeg", plan.Items[0].Error);
+        var error = await Assert.ThrowsAsync<FileProcessingException>(() => service.PreviewAsync(source, 256, default));
+        Assert.Contains(previewMessage, error.Message);
+        Assert.DoesNotContain("error/jpeg", error.Message);
+        Assert.False(Directory.Exists(plan.Request.OutputDirectory));
+    }
+
     [Fact]
     public async Task Preview_and_all_image_targets_are_real_files_and_keep_originals()
     {

@@ -17,6 +17,18 @@ public sealed partial class FilePreviewView : UserControl
     public static readonly DependencyProperty GlyphProperty = DependencyProperty.Register(nameof(Glyph), typeof(string),
         typeof(FilePreviewView), new PropertyMetadata("\uE8A5", (owner, e) => ((FilePreviewView)owner).FallbackIcon.Glyph = (string)e.NewValue));
     public string Glyph { get => (string)GetValue(GlyphProperty); set => SetValue(GlyphProperty, value); }
+    public static readonly DependencyProperty PreviewHeightProperty = DependencyProperty.Register(nameof(PreviewHeight), typeof(double),
+        typeof(FilePreviewView), new PropertyMetadata(240d, (owner, _) => ((FilePreviewView)owner).UpdatePreviewHeight()));
+    public double PreviewHeight { get => (double)GetValue(PreviewHeightProperty); set => SetValue(PreviewHeightProperty, value); }
+
+    private void UpdatePreviewHeight()
+    {
+        if (PreviewFrame is null) return;
+        var height = double.IsFinite(PreviewHeight) ? Math.Max(80, PreviewHeight) : 240;
+        PreviewFrame.MinHeight = Math.Min(168, height);
+        PreviewFrame.MaxHeight = height;
+        PreviewImage.MaxHeight = TextViewport.MaxHeight = height - 24;
+    }
 
     public FilePreviewView()
     {

@@ -4,6 +4,7 @@ using FileAssistant.App.Features.Workspace;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 
 namespace FileAssistant.App;
@@ -47,8 +48,11 @@ public sealed partial class MainWindow : Window
         if (WindowRoot is null) return;
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        AppWindow.TitleBar.ButtonForegroundColor = WindowRoot.ActualTheme == ElementTheme.Dark ? Colors.White : Colors.Black;
-        AppWindow.TitleBar.ButtonInactiveForegroundColor = WindowRoot.ActualTheme == ElementTheme.Dark ? Colors.LightGray : Colors.DimGray;
+        if (AppTitleBar.Foreground is SolidColorBrush foreground)
+        {
+            AppWindow.TitleBar.ButtonForegroundColor = foreground.Color;
+            AppWindow.TitleBar.ButtonInactiveForegroundColor = foreground.Color;
+        }
     }
 
     [DllImport("user32.dll")]

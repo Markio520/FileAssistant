@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using FileAssistant.Core.Engines;
@@ -48,6 +49,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                 token.ThrowIfCancellationRequested();
                 if (Directory.Exists(path)) return new PreviewResult(PreviewKind.Unsupported, Message: "文件夹");
                 var stamp = Stamp(path);
+                RejectMetadataFile(path);
                 var extension = Path.GetExtension(path);
                 if (TextExtensions.Contains(extension))
                 {
@@ -120,6 +122,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
                     if (!known.Add(path)) continue;
                     if (Directory.Exists(path)) { sources.Add(new(path, 0, 0, Error: "当前转换不接受文件夹。")); continue; }
                     var source = Stamp(path);
+                    RejectMetadataFile(path);
                     if (Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
                         source = source with { PdfPages = PdfiumEngine.PageCount(path) };
                     else if (ConversionCapabilities.IsOffice(path))
@@ -227,6 +230,15 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
             throw new FileProcessingException("请选择实际文件或完整的输出文件夹路径。");
         return Path.TrimEndingDirectorySeparator(Path.GetFullPath(supplied));
     }
+    private static void RejectMetadataFile(string path)
+    {
+        using var input = File.OpenRead(path);
+        Span<byte> header = stackalloc byte[4];
+        // AppleDouble's magic identifies metadata even when renamed; names alone are not reliable.
+        if (input.ReadAtLeast(header, header.Length, throwOnEndOfStream: false) == header.Length &&
+            BinaryPrimitives.ReadUInt32BigEndian(header) == 0x00051607)
+            throw new FileProcessingException($"{Path.GetFileName(path)} 是 macOS 附带的元数据文件，无法预览或转换。请添加对应原文件（通常在 __MACOSX 文件夹外，文件名不带“._”前缀）。");
+    }
     private static ProcessingSource Stamp(string path)
     {
         var file = new FileInfo(path);
@@ -241,7 +253,7 @@ public sealed class LocalFileProcessingService(EnginePaths paths) : IFileProcess
     private static FileProcessingException Friendly(Exception error) => error switch
     {
         FileProcessingException processing => processing,
-        MagickException magick => new("图片引擎无法处理此文件：" + magick.Message, magick),
+        MagickException magick => new("无法读取图片内容，请确认文件未损坏且实际格式与扩展名一致，再重新添加。", magick),
         FileNotFoundException or DirectoryNotFoundException => new("文件或目录已移动、删除，请重新添加。", error),
         UnauthorizedAccessException => new("没有访问此文件或输出位置的权限。", error),
         DllNotFoundException or BadImageFormatException => new("本地引擎组件不可用，请检查安装或引擎管理。", error),

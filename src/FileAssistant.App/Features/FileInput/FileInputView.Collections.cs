@@ -1,3 +1,4 @@
+using FileAssistant.App.Controls;
 using FileAssistant.App.Features.Workspace;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,8 +14,7 @@ public sealed partial class FileInputView
     private const string DragKey = "FileAssistant.SoftwareFolderDrag";
     private sealed record InputDrag(string Token, WorkspaceViewModel Source, IReadOnlyList<WorkspaceFile> Items);
     private static InputDrag? currentDrag;
-    private Panel? dropHighlight;
-    private Brush? previousDropBackground;
+    private readonly DropTargetHighlight dropHighlight = new();
     private async Task FolderDialogAsync(Func<Task> action)
     {
         if (choosing || !ViewModel.CanReceiveFiles) return;
@@ -100,6 +100,7 @@ public sealed partial class FileInputView
         {
             menu.Items.Add(Item("新建文件夹…", NewFolder_Click));
             menu.Items.Add(Item("添加文件…", PickFiles_Click));
+            menu.Items.Add(Item("添加文件夹…", PickFolder_Click));
             return;
         }
         if (ViewModel.CanRenameFolder)
@@ -127,10 +128,15 @@ public sealed partial class FileInputView
     private void Files_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
         var items = e.Items.OfType<WorkspaceFile>().ToArray();
-        if (!ViewModel.CanReceiveFiles || choosing || ViewModel.HasSamples || items.Length == 0) { e.Cancel = true; return; }
+        e.Cancel = !StartInputDrag(items, e.Data);
+    }
+    private bool StartInputDrag(IReadOnlyList<WorkspaceFile> items, DataPackage data)
+    {
+        if (!ViewModel.CanReceiveFiles || choosing || ViewModel.HasSamples || items.Count == 0) return false;
         currentDrag = new(Guid.NewGuid().ToString("N"), ViewModel, items);
-        e.Data.SetData(DragKey, currentDrag.Token);
-        e.Data.RequestedOperation = DataPackageOperation.Copy | DataPackageOperation.Move;
+        data.SetData(DragKey, currentDrag.Token);
+        data.RequestedOperation = DataPackageOperation.Copy | DataPackageOperation.Move;
+        return true;
     }
     private void Files_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) { currentDrag = null; ClearDropHighlight(); }
     private static InputDrag? InternalDrag(DataPackageView data) => currentDrag is { } drag && data.Contains(DragKey) ? drag : null;
@@ -150,20 +156,14 @@ public sealed partial class FileInputView
         e.Handled = true;
         return valid;
     }
-    private void ClearDropHighlight()
-    {
-        if (dropHighlight is not null) dropHighlight.Background = previousDropBackground;
-        dropHighlight = null; previousDropBackground = null;
-    }
+    private void ClearDropHighlight() => dropHighlight.Clear();
     private void Row_DragOver(object sender, DragEventArgs e)
     {
         if (sender is not Panel { Tag: WorkspaceFile { FolderId: { } id } } panel) return;
         if (!CollectionDragOver(e, id)) { ClearDropHighlight(); return; }
-        if (ReferenceEquals(dropHighlight, panel)) return;
-        ClearDropHighlight(); dropHighlight = panel; previousDropBackground = panel.Background;
-        panel.Background = (Brush)Application.Current.Resources["WorkspaceAccentSubtleBrush"];
+        dropHighlight.Show(panel);
     }
-    private void Row_DragLeave(object sender, DragEventArgs e) { if (ReferenceEquals(sender, dropHighlight)) ClearDropHighlight(); }
+    private void Row_DragLeave(object sender, DragEventArgs e) => ClearDropHighlight();
     private async void Row_Drop(object sender, DragEventArgs e)
     { if ((sender as FrameworkElement)?.Tag is WorkspaceFile { FolderId: { } id }) await CollectionDropAsync(e, id); }
     private async Task CollectionDropAsync(DragEventArgs e, Guid destination)

@@ -16,4 +16,5 @@ public sealed partial class WorkspaceTaskPanel : UserControl
     }
 
     public WorkspaceTaskPanel() => InitializeComponent();
+    private void Close_Click(object sender, RoutedEventArgs e) => ViewModel.IsQueueExpanded = false;
 }

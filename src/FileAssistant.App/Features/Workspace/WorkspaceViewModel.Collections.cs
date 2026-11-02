@@ -7,6 +7,10 @@ namespace FileAssistant.App.Features.Workspace;
 
 public sealed record FolderBreadcrumb(Guid Id, string Name);
 public sealed record FolderChoice(Guid Id, string Label) { public override string ToString() => Label; }
+public sealed record FolderNavigationItem(Guid Id, string Name, int Count, Guid ParentId)
+{
+    public override string ToString() => $"{Name}，{Count} 个文件";
+}
 
 public partial class WorkspaceViewModel
 {
@@ -31,9 +35,19 @@ public partial class WorkspaceViewModel
         new FolderBreadcrumb(id, id == Guid.Empty ? Title : collection.Folders.First(folder => folder.Id == id).Name)).ToArray();
     public IReadOnlyList<FolderChoice> FolderChoices => new[] { new FolderChoice(Guid.Empty, Title) }
         .Concat(collection.Folders.Select(folder => new FolderChoice(folder.Id, Title + " / " + collection.FolderPath(folder.Id)))).ToArray();
+    public IReadOnlyList<FolderNavigationItem> FolderNavigation
+    {
+        get
+        {
+            var result = new List<FolderNavigationItem> { new(Guid.Empty, "全部文件", HasSamples ? files.Count : collection.Resolve(Guid.Empty).Count, Guid.Empty) };
+            result.AddRange(collection.Folders.Select(folder => new FolderNavigationItem(
+                folder.Id, folder.Name, collection.Resolve(folder.Id).Count, folder.ParentId)));
+            return result;
+        }
+    }
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPersistenceMessage), nameof(HasFooterMessage))]
     public partial string PersistenceMessage { get; set; } = string.Empty;
-    [ObservableProperty] public partial bool CanRetrySave { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OperationMenuLabel))] public partial bool CanRetrySave { get; set; }
     public bool HasPersistenceMessage => PersistenceMessage.Length > 0;
     public bool HasFooterMessage => HasInputFeedback || HasPersistenceMessage || HasUndo;
     public bool HasUnsavedCollection => saveEnabled && dirtyVersion != savedVersion;
@@ -53,6 +67,11 @@ public partial class WorkspaceViewModel
         return new(folder.Name, $"软件文件夹 · {children.Count:N0} 项", children.Sum(entry => entry.File.Size ?? 0),
             Title + (folder.ParentId == Guid.Empty ? "" : " / " + collection.FolderPath(folder.ParentId)), "—", "\uE8B7", 8,
             FolderId: folder.Id);
+    }
+    public IReadOnlyList<WorkspaceFile> GetFolderItems(IEnumerable<Guid> ids)
+    {
+        var selected = ids.ToHashSet();
+        return collection.Folders.Where(folder => selected.Contains(folder.Id)).Select(FolderRow).ToArray();
     }
     private IEnumerable<WorkspaceFile> CurrentRows()
     {

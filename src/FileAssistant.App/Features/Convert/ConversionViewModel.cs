@@ -43,7 +43,7 @@ public partial class ConversionViewModel : ObservableObject
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanEdit), nameof(CanSelectFormat), nameof(CanBuildPlan), nameof(CanRun)), NotifyCanExecuteChangedFor(nameof(BuildPlanCommand), nameof(RunCommand), nameof(CancelCommand))]
     public partial bool IsBusy { get; set; }
     [ObservableProperty] public partial string Feedback { get; set; } = string.Empty;
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(ShowOutputsCommand))] public partial ConversionReport? Report { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasOutputs)), NotifyCanExecuteChangedFor(nameof(ShowOutputsCommand))] public partial ConversionReport? Report { get; set; }
     public bool CanEdit => !IsBusy;
     public bool HasFormats => Formats.Count > 0;
     public bool CanSelectFormat => CanEdit && HasFormats;
@@ -71,9 +71,11 @@ public partial class ConversionViewModel : ObservableObject
         : Input.CurrentFolderId != Guid.Empty ? $"将转换“{Input.CurrentFolderName}”及子文件夹中的全部 {ConversionEntries.Count:N0} 个文件。"
         : $"未选择文件，将转换输入列表全部 {ConversionEntries.Count:N0} 项。";
     private bool CanShowOutputs => Report?.Outputs.Count > 0;
-    public string PlanSummary => Plan is null ? "先预览转换计划，再开始转换。" : $"将生成 {Plan.ReadyCount} 个文件 · {Plan.RejectedCount} 项不可处理";
+    public bool HasOutputs => CanShowOutputs;
+    public string PlanSummary => Plan is null ? "添加文件并设置参数后，自动显示转换计划。" : $"将生成 {Plan.ReadyCount} 个文件 · {Plan.RejectedCount} 项不可处理";
     public event EventHandler<int>? OutputsRequested;
     public event EventHandler? EngineManagementRequested;
+    public event EventHandler? PlanInvalidated;
     private int lastTask;
     private IReadOnlyList<SearchFile> ConversionEntries => Input.EffectiveEntries;
     public string InputIdentity => $"{Input.CurrentFolderId:N}:{Input.CollectionRevision}:" + string.Join('\0', ConversionEntries.Select(file => file.FullPath));
@@ -129,7 +131,7 @@ public partial class ConversionViewModel : ObservableObject
         RefreshInput(force: changed);
     }
     [RelayCommand] private void OpenEngineManagement() => EngineManagementRequested?.Invoke(this, EventArgs.Empty);
-    private void Invalidate() { optionsRevision++; Plan = null; }
+    private void Invalidate() { optionsRevision++; Plan = null; PlanInvalidated?.Invoke(this, EventArgs.Empty); }
     partial void OnTargetFormatValueChanged(int value) { Invalidate(); NotifyOptions(); }
     partial void OnQualityChanged(double value) => Invalidate();
     partial void OnPdfDpiChanged(double value) => Invalidate();
@@ -152,8 +154,11 @@ public partial class ConversionViewModel : ObservableObject
             var settings = ReadSettings();
             var result = await service.CreatePlanAsync(new(entries.Select(file => file.FullPath).ToArray(),
                 OutputDirectory.Trim(), (ConversionTarget)TargetFormatValue, (int)quality, (int)pdfDpi, settings), current.Token);
-            if (identity != InputIdentity || revision != optionsRevision) { Feedback = "输入文件或参数已变化，请重新预览计划。"; return; }
-            Plan = result; Feedback = "计划已就绪，已有同名文件将自动编号保留。";
+            if (identity != InputIdentity || revision != optionsRevision) { Feedback = "输入文件或参数已变化，正在更新计划。"; return; }
+            Plan = result;
+            Feedback = result.ReadyCount == 0 ? "没有可转换的文件，请查看计划中的原因并重新添加原文件。"
+                : result.RejectedCount > 0 ? "部分文件不可处理，开始转换将只处理计划中的可用文件。"
+                : "计划已就绪，已有同名文件将自动编号保留。";
         }
         catch (OperationCanceledException) { Feedback = "已取消预览计划。"; }
         catch (FileProcessingException error) { Feedback = error.Message; }

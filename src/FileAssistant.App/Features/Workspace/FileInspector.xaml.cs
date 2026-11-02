@@ -16,7 +16,7 @@ public sealed partial class FileInspector : UserControl
 
     public FileInspector() => InitializeComponent();
 
-    public void ShowParameters(bool show, UIElement? operationContent = null)
+    public void ShowParameters(bool show, UIElement? operationContent = null, bool hideSingleTabHeader = false)
     {
         CustomParameters.Content = operationContent;
         CustomParameters.Visibility = operationContent is null ? Visibility.Collapsed : Visibility.Visible;
@@ -25,5 +25,18 @@ public sealed partial class FileInspector : UserControl
         if (!show) InspectorTabs.Items.Remove(ParametersTab);
         else if (!InspectorTabs.Items.Contains(ParametersTab)) InspectorTabs.Items.Add(ParametersTab);
         InspectorTabs.SelectedIndex = show ? 1 : 0;
+        var single = !show && hideSingleTabHeader;
+        if (single)
+        {
+            DetailsTab.Content = null;
+            SingleFilePresenter.Content = DetailsContent;
+        }
+        else
+        {
+            SingleFilePresenter.Content = null;
+            DetailsTab.Content = DetailsContent;
+        }
+        InspectorTabs.Visibility = single ? Visibility.Collapsed : Visibility.Visible;
+        SingleFilePresenter.Visibility = single ? Visibility.Visible : Visibility.Collapsed;
     }
 }

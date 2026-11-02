@@ -1,39 +1,43 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- The app's color values live here. Controls consume semantic ThemeResource brushes. -->
-    <Color x:Key="SystemAccentColor">#007D82</Color>
-    <Color x:Key="SystemAccentColorLight1">#5CB8BF</Color>
-    <Color x:Key="SystemAccentColorLight2">#83D5D7</Color>
-    <Color x:Key="SystemAccentColorLight3">#C4ECEE</Color>
-    <Color x:Key="SystemAccentColorDark1">#006C70</Color>
-    <Color x:Key="SystemAccentColorDark2">#005A60</Color>
-    <Color x:Key="SystemAccentColorDark3">#003F44</Color>
+    <!-- Single color source. Keep Light/Dark/HighContrast keys paired; pages use semantic brushes. -->
+    <Color x:Key="SystemAccentColor">#242728</Color>
+    <Color x:Key="SystemAccentColorLight1">#AEB8A9</Color>
+    <Color x:Key="SystemAccentColorLight2">#D9E1D4</Color>
+    <Color x:Key="SystemAccentColorLight3">#ECEEE8</Color>
+    <Color x:Key="SystemAccentColorDark1">#242728</Color>
+    <Color x:Key="SystemAccentColorDark2">#1E221F</Color>
+    <Color x:Key="SystemAccentColorDark3">#151916</Color>
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-            <Color x:Key="AppBackgroundColor">#F3F5F7</Color>
+            <Color x:Key="AppBackgroundColor">#F2F3EF</Color>
             <Color x:Key="AppSurfaceColor">#FFFFFF</Color>
-            <Color x:Key="AppSubtleColor">#F7F9FA</Color>
-            <Color x:Key="AppBorderColor">#DEE4E8</Color>
-            <Color x:Key="AppSecondaryTextColor">#56636F</Color>
-            <StaticResource x:Key="AppAccentColor" ResourceKey="SystemAccentColorDark1" />
-            <Color x:Key="AppAccentSecondaryColor">#087C80</Color>
-            <Color x:Key="AppAccentTertiaryColor">#146367</Color>
-            <Color x:Key="AppAccentSubtleColor">#E5F2F2</Color>
-            <Color x:Key="AppSelectionHoverColor">#D7EAEB</Color>
+            <Color x:Key="AppSubtleColor">#FAFAF8</Color>
+            <Color x:Key="AppBorderColor">#E2E5DD</Color>
+            <Color x:Key="AppTextColor">#252627</Color>
+            <Color x:Key="AppSecondaryTextColor">#62685F</Color>
+            <Color x:Key="AppAccentColor">#242728</Color>
+            <Color x:Key="AppAccentSecondaryColor">#3B403D</Color>
+            <Color x:Key="AppAccentTertiaryColor">#171B18</Color>
+            <Color x:Key="AppAccentSubtleColor">#ECEEE8</Color>
+            <Color x:Key="AppSelectionHoverColor">#E4E7DF</Color>
+            <Color x:Key="AppOnAccentColor">#FFFFFF</Color>
             <Color x:Key="AppSuccessColor">#18703F</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-            <Color x:Key="AppBackgroundColor">#1B2025</Color>
-            <Color x:Key="AppSurfaceColor">#252C32</Color>
-            <Color x:Key="AppSubtleColor">#20272D</Color>
-            <Color x:Key="AppBorderColor">#3A444D</Color>
-            <Color x:Key="AppSecondaryTextColor">#B6C1CB</Color>
-            <StaticResource x:Key="AppAccentColor" ResourceKey="SystemAccentColorLight2" />
-            <Color x:Key="AppAccentSecondaryColor">#99DFE0</Color>
-            <Color x:Key="AppAccentTertiaryColor">#6FC2C5</Color>
-            <Color x:Key="AppAccentSubtleColor">#234345</Color>
-            <Color x:Key="AppSelectionHoverColor">#2C5153</Color>
+            <Color x:Key="AppBackgroundColor">#1C201E</Color>
+            <Color x:Key="AppSurfaceColor">#252A27</Color>
+            <Color x:Key="AppSubtleColor">#212623</Color>
+            <Color x:Key="AppBorderColor">#3D453F</Color>
+            <Color x:Key="AppTextColor">#EEF1EB</Color>
+            <Color x:Key="AppSecondaryTextColor">#B5BDB4</Color>
+            <Color x:Key="AppAccentColor">#D9E1D4</Color>
+            <Color x:Key="AppAccentSecondaryColor">#E3EADF</Color>
+            <Color x:Key="AppAccentTertiaryColor">#C8D2C3</Color>
+            <Color x:Key="AppAccentSubtleColor">#363E36</Color>
+            <Color x:Key="AppSelectionHoverColor">#414A41</Color>
+            <Color x:Key="AppOnAccentColor">#202421</Color>
             <Color x:Key="AppSuccessColor">#8CD8AC</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
@@ -41,9 +45,14 @@
             <StaticResource x:Key="AppSurfaceColor" ResourceKey="SystemColorWindowColor" />
             <StaticResource x:Key="AppSubtleColor" ResourceKey="SystemColorWindowColor" />
             <StaticResource x:Key="AppBorderColor" ResourceKey="SystemColorWindowTextColor" />
+            <StaticResource x:Key="AppTextColor" ResourceKey="SystemColorWindowTextColor" />
             <StaticResource x:Key="AppSecondaryTextColor" ResourceKey="SystemColorWindowTextColor" />
-            <StaticResource x:Key="AppAccentColor" ResourceKey="SystemColorHotlightColor" />
-            <StaticResource x:Key="AppAccentSubtleColor" ResourceKey="SystemColorWindowColor" />
+            <StaticResource x:Key="AppAccentColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="AppAccentSecondaryColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="AppAccentTertiaryColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="AppAccentSubtleColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="AppSelectionHoverColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="AppOnAccentColor" ResourceKey="SystemColorHighlightTextColor" />
             <StaticResource x:Key="AppSuccessColor" ResourceKey="SystemColorWindowTextColor" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>

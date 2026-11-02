@@ -15,6 +15,101 @@ public sealed class FileCollectionWorkflowTests
 {
     private static SearchFile File(string name) => new(@"C:\fixtures\" + name, false, 10, null);
     [Fact]
+    public void Folder_drag_payload_can_nest_and_promote_a_subtree_without_changing_its_references()
+    {
+        var vm = new WorkspaceViewModel();
+        var products = vm.CreateFolder("产品图片");
+        var packaging = vm.CreateFolder("包装素材", products);
+        var details = vm.CreateFolder("细节", packaging);
+        var documents = vm.CreateFolder("文档资料", Guid.Empty);
+        vm.EnterFolder(packaging); vm.AddSearchFiles([File("box.png")]);
+        vm.EnterFolder(details); vm.AddSearchFiles([File("detail.png")]);
+        vm.EnterFolder(packaging);
+        var before = vm.CollectionSnapshot.Entries.ToArray();
+
+        var drag = vm.GetFolderItems([packaging]);
+        Assert.Equal(packaging, Assert.Single(drag).FolderId);
+        vm.MoveItemsTo(drag, documents);
+        Assert.Equal(documents, vm.CollectionSnapshot.Folders.Single(folder => folder.Id == packaging).ParentId);
+        Assert.Equal([Guid.Empty, documents, packaging], vm.Breadcrumbs.Select(folder => folder.Id));
+        Assert.Equal(2, vm.FolderNavigation.Single(folder => folder.Id == documents).Count);
+        Assert.Equal(0, vm.FolderNavigation.Single(folder => folder.Id == products).Count);
+        Assert.Equal(before, vm.CollectionSnapshot.Entries);
+
+        vm.MoveItemsTo(vm.GetFolderItems([packaging]), Guid.Empty);
+        Assert.Equal(Guid.Empty, vm.CollectionSnapshot.Folders.Single(folder => folder.Id == packaging).ParentId);
+        Assert.Equal(packaging, vm.CollectionSnapshot.Folders.Single(folder => folder.Id == details).ParentId);
+        Assert.Equal([Guid.Empty, packaging], vm.Breadcrumbs.Select(folder => folder.Id));
+        Assert.Equal(before, vm.CollectionSnapshot.Entries);
+        Assert.Equal(2, vm.SearchEntries.Count);
+    }
+
+    [Fact]
+    public void Folder_drag_rejects_self_and_descendant_targets_without_partial_changes()
+    {
+        var vm = new WorkspaceViewModel();
+        var parent = vm.CreateFolder("父目录");
+        var child = vm.CreateFolder("子目录", parent);
+        var drag = vm.GetFolderItems([parent]);
+        var before = vm.CollectionSnapshot;
+        foreach (var destination in new[] { parent, child })
+        {
+            Assert.False(vm.CanMoveTo([parent], destination));
+            Assert.Throws<ArgumentException>(() => vm.MoveItemsTo(drag, destination));
+            Assert.Equal(before.Folders, vm.CollectionSnapshot.Folders);
+            Assert.Equal(before.Entries, vm.CollectionSnapshot.Entries);
+        }
+    }
+
+    [Fact]
+    public void Folder_navigation_keeps_parent_relationships_and_recursive_unique_counts_when_filtering()
+    {
+        var vm = new WorkspaceViewModel();
+        var products = vm.CreateFolder("产品图片");
+        var packaging = vm.CreateFolder("包装素材", products);
+        var documents = vm.CreateFolder("文档资料", Guid.Empty);
+        vm.EnterFolder(products); vm.AddSearchFiles([File("same.png")]);
+        vm.EnterFolder(packaging); vm.AddSearchFiles([File("same.png"), File("box.png")]);
+        vm.EnterFolder(documents); vm.AddSearchFiles([File("notes.txt")]);
+        vm.SearchText = "不存在的文件";
+
+        var navigation = vm.FolderNavigation.ToDictionary(folder => folder.Id);
+        Assert.Equal(4, navigation.Count);
+        Assert.Equal("全部文件", navigation[Guid.Empty].Name);
+        Assert.Equal(3, navigation[Guid.Empty].Count);
+        Assert.Equal(Guid.Empty, navigation[products].ParentId);
+        Assert.Equal(products, navigation[packaging].ParentId);
+        Assert.Equal(2, navigation[products].Count);
+        Assert.Equal(2, navigation[packaging].Count);
+        Assert.Equal(1, navigation[documents].Count);
+        vm.RenameFolder(packaging, "新版包装");
+        Assert.Equal("新版包装", vm.FolderNavigation.Single(folder => folder.Id == packaging).Name);
+    }
+
+    [Fact]
+    public async Task Creating_in_a_context_folder_preserves_current_location_and_saves_the_chosen_parent()
+    {
+        var store = new Store();
+        var vm = new WorkspaceViewModel(new Reader(), WorkspaceInputPurpose.Staging, store);
+        await vm.LoadCollectionAsync();
+        var products = vm.CreateFolder("产品图片");
+        var documents = vm.CreateFolder("文档资料");
+        vm.EnterFolder(documents);
+        var packaging = vm.CreateFolder("包装素材", products);
+        var topLevel = vm.CreateFolder("顶层目录", Guid.Empty);
+        Assert.Equal(documents, vm.CurrentFolderId);
+        Assert.Empty(vm.VisibleFiles);
+        await vm.FlushCollectionAsync();
+
+        var restored = new WorkspaceViewModel(new Reader(), WorkspaceInputPurpose.Staging, store);
+        await restored.LoadCollectionAsync();
+        Assert.Equal(documents, restored.CurrentFolderId);
+        Assert.Equal(products, restored.CollectionSnapshot.Folders.Single(folder => folder.Id == packaging).ParentId);
+        Assert.Equal(Guid.Empty, restored.CollectionSnapshot.Folders.Single(folder => folder.Id == topLevel).ParentId);
+        Assert.Equal(0, restored.FolderNavigation.Single(folder => folder.Id == packaging).Count);
+    }
+
+    [Fact]
     public async Task Conversion_uses_the_current_folder_and_selected_folders_expand_without_leaking_other_groups()
     {
         var input = new WorkspaceViewModel(new Reader(), WorkspaceInputPurpose.Conversion);
