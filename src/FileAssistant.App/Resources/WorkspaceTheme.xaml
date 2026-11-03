@@ -28,7 +28,7 @@
             <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{ThemeResource AppAccentColor}" />
             <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{ThemeResource AppAccentSecondaryColor}" />
             <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="{ThemeResource AppAccentTertiaryColor}" />
-            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="{ThemeResource AppAccentColor}" />
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="{ThemeResource AppAccentTextColor}" />
             <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="{ThemeResource AppAccentColor}" />
             <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{ThemeResource AppAccentSubtleColor}" />
             <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{ThemeResource AppSelectionHoverColor}" />
@@ -59,7 +59,7 @@
             <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{ThemeResource AppAccentColor}" />
             <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{ThemeResource AppAccentSecondaryColor}" />
             <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="{ThemeResource AppAccentTertiaryColor}" />
-            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="{ThemeResource AppAccentColor}" />
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="{ThemeResource AppAccentTextColor}" />
             <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="{ThemeResource AppAccentColor}" />
             <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{ThemeResource AppAccentSubtleColor}" />
             <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{ThemeResource AppSelectionHoverColor}" />

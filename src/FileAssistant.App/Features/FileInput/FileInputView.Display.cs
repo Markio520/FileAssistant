@@ -18,20 +18,37 @@ public sealed partial class FileInputView
         displayModel = ViewModel;
         if (displayModel is null) return;
         displayModel.PropertyChanged += DisplayModelChanged;
+        displayModel.VisibleFilesRefreshed += RestoreVisibleSelection;
         ResetFolderNavigation();
         UpdateFolderNavigation();
     }
 
     private void DetachDisplayModel()
     {
-        if (displayModel is not null) displayModel.PropertyChanged -= DisplayModelChanged;
+        if (displayModel is not null) { displayModel.PropertyChanged -= DisplayModelChanged; displayModel.VisibleFilesRefreshed -= RestoreVisibleSelection; }
         displayModel = null;
     }
 
     private void DisplayModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(WorkspaceViewModel.SelectedRows)) RestoreVisibleSelection(sender, EventArgs.Empty);
         if (e.PropertyName == nameof(WorkspaceViewModel.CollectionRevision) ||
             e.PropertyName == nameof(WorkspaceViewModel.BatchSummary) && ViewModel.HasSamples) QueueFolderNavigationUpdate();
+    }
+
+    private void RestoreVisibleSelection(object? sender, EventArgs e)
+    {
+        if (switchingView || ViewModel.IsRefreshingFiles) return;
+        switchingView = true;
+        try
+        {
+            var desired = ViewModel.VisibleFiles.Where(ViewModel.IsRowSelected).ToHashSet();
+            var current = FileList.SelectedItems.OfType<WorkspaceFile>().ToHashSet();
+            foreach (var old in FileList.SelectedItems.OfType<WorkspaceFile>().ToArray())
+                if (!desired.Contains(old)) FileList.SelectedItems.Remove(old);
+            foreach (var row in desired) if (!current.Contains(row)) FileList.SelectedItems.Add(row);
+        }
+        finally { switchingView = false; }
     }
 
     private void CollapseFolders_Click(object sender, RoutedEventArgs e) => SetFoldersOpen(false);
@@ -40,8 +57,8 @@ public sealed partial class FileInputView
     {
         FolderSidebar.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         CollapsedFolders.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
-        FoldersColumn.Width = new GridLength(open ? 176 : 48);
-        DetailsHost.MinimumContentWidth = open ? 536 : 408;
+        FoldersResizeHandle.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        UpdateFoldersWidth();
     }
     private void CollapseInspector_Click(object sender, RoutedEventArgs e) => DetailsHost.IsPaneOpen = false;
     private void ExpandInspector_Click(object sender, RoutedEventArgs e) => DetailsHost.IsPaneOpen = true;

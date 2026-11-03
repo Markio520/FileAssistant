@@ -22,6 +22,7 @@ public sealed partial class WorkspacePage : Page
         ActualThemeChanged += (_, _) => UpdateQueueLayout();
         SizeChanged += (_, _) => { UpdateQueueLayout(); UpdateNavigationLayout(); };
         App.Conversion.OutputsRequested += (_, task) => { App.Outputs.TaskId = task; NavigateTo("outputs"); };
+        App.Copy.OutputsRequested += (_, task) => { App.Outputs.TaskId = task; NavigateTo("outputs"); };
         App.Conversion.EngineManagementRequested += (_, _) => NavigateTo("settings");
         KeyboardAccelerators.Add(new KeyboardAccelerator { Key = Windows.System.VirtualKey.F, Modifiers = Windows.System.VirtualKeyModifiers.Control });
         KeyboardAccelerators[^1].Invoked += (_, args) =>
@@ -58,6 +59,7 @@ public sealed partial class WorkspacePage : Page
             if (searching) SearchPanel.Activate();
             if (converting) App.Conversion.RefreshCapabilities();
             ConversionPanel.SetActive(converting);
+            CopyPanel.SetActive(copying);
         }
     }
 

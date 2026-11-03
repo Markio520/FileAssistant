@@ -2,39 +2,36 @@
 name: "FileAssistant（暂用名）"
 description: "当前 WinUI 主工作区的原生控件、主题与布局记录"
 colors:
-  workspace-accent-light: "#242728"
-  accent-fill-secondary-light: "#3B403D"
-  accent-fill-tertiary-light: "#171B18"
-  workspace-accent-subtle-light: "#ECEEE8"
-  selection-hover-light: "#E4E7DF"
-  workspace-background-light: "#F2F3EF"
-  workspace-surface-light: "#FFFFFF"
-  workspace-subtle-light: "#FAFAF8"
-  workspace-border-light: "#E2E5DD"
-  workspace-secondary-light: "#62685F"
-  workspace-success-light: "#18703F"
-  workspace-text-light: "#252627"
-  workspace-on-accent-light: "#FFFFFF"
-  workspace-accent-dark: "#D9E1D4"
-  accent-fill-secondary-dark: "#E3EADF"
-  accent-fill-tertiary-dark: "#C8D2C3"
-  workspace-accent-subtle-dark: "#363E36"
-  selection-hover-dark: "#414A41"
-  workspace-background-dark: "#1C201E"
-  workspace-surface-dark: "#252A27"
-  workspace-subtle-dark: "#212623"
-  workspace-border-dark: "#3D453F"
-  workspace-secondary-dark: "#B5BDB4"
+  workspace-accent-light: "#292E25"
+  accent-fill-secondary-light: "#3B4235"
+  accent-fill-tertiary-light: "#1D221A"
+  workspace-accent-subtle-light: "#E1E3D8"
+  selection-hover-light: "#DADCD1"
+  workspace-background-light: "#EAE8E2"
+  workspace-surface-light: "#FAFAF6"
+  workspace-subtle-light: "#F1F0EA"
+  workspace-border-light: "#DCDDD3"
+  workspace-secondary-light: "#707268"
+  workspace-success-light: "#287046"
+  workspace-text-light: "#252620"
+  workspace-on-accent-light: "#FAFAF6"
+  workspace-accent-dark: "#C94B46"
+  accent-fill-secondary-dark: "#BC443F"
+  accent-fill-tertiary-dark: "#AD3C37"
+  workspace-accent-subtle-dark: "#323237"
+  selection-hover-dark: "#3D3D44"
+  workspace-background-dark: "#151517"
+  workspace-surface-dark: "#232327"
+  workspace-subtle-dark: "#202024"
+  workspace-border-dark: "#34343B"
+  workspace-secondary-dark: "#B0B0BA"
   workspace-success-dark: "#8CD8AC"
-  workspace-text-dark: "#EEF1EB"
-  workspace-on-accent-dark: "#202421"
-  system-accent: "#242728"
-  system-accent-light1: "#AEB8A9"
-  system-accent-light2: "#D9E1D4"
-  system-accent-light3: "#ECEEE8"
-  system-accent-dark1: "#242728"
-  system-accent-dark2: "#1E221F"
-  system-accent-dark3: "#151916"
+  workspace-text-dark: "#F0F0F2"
+  workspace-on-accent-dark: "#FFFFFF"
+  accent-text-light: "#292E25"
+  accent-text-dark: "#EF6B63"
+  system-accent-light: "#292E25"
+  system-accent-dark: "#C94B46"
 typography:
   headline:
     fontFamily: "XamlAutoFontFamily"
@@ -130,20 +127,22 @@ components:
 
 ## 公共配色入口
 
+2026-11-03 用户确认默认浅色为概念 15「沙白画廊」，默认深色为概念 14「炭黑微光」。沿用跟随系统/浅色/深色设置。深色主按钮红色为 `#C94B46`，相较概念图略加深以保证白字对比；强调文字单独使用 `AppAccentTextColor`（浅色 `#292E25`，深色 `#EF6B63`）。系统强调色阶随浅深色切换，高对比度继续映射系统颜色。
+
 修改颜色只编辑 [ThemePalette.xaml](src/FileAssistant.App/Resources/ThemePalette.xaml) 中对应主题的语义颜色及同文件的系统强调色阶。不要把颜色复制到页面、控件代码或 `App.xaml`。其中 Light、Dark、HighContrast 必须保持相同资源键。
 
 | 颜色键 | 浅色 / 深色 | 用途 |
 | --- | --- | --- |
-| `AppBackgroundColor` | `#F2F3EF` / `#1C201E` | 页面背景 |
-| `AppSurfaceColor` | `#FFFFFF` / `#252A27` | 文件工作面、导航、任务浮层 |
-| `AppSubtleColor` | `#FAFAF8` / `#212623` | 次级工作面、列表表头 |
-| `AppBorderColor` | `#E2E5DD` / `#3D453F` | 分区边框与分隔线 |
-| `AppTextColor` | `#252627` / `#EEF1EB` | 主文字及标题栏前景 |
-| `AppSecondaryTextColor` | `#62685F` / `#B5BDB4` | 路径、计数与说明 |
-| `AppAccentColor` | `#242728` / `#D9E1D4` | 主按钮、选中指示、进度 |
-| `AppOnAccentColor` | `#FFFFFF` / `#202421` | 主按钮中的文字与图标 |
-| `AppAccentSubtleColor` | `#ECEEE8` / `#363E36` | 选中导航和文件项 |
-| `AppSelectionHoverColor` | `#E4E7DF` / `#414A41` | 选中项悬停/按下 |
+| `AppBackgroundColor` | `#EAE8E2` / `#151517` | 页面背景 |
+| `AppSurfaceColor` | `#FAFAF6` / `#232327` | 文件工作面、导航、任务浮层 |
+| `AppSubtleColor` | `#F1F0EA` / `#202024` | 次级工作面、列表表头 |
+| `AppBorderColor` | `#DCDDD3` / `#34343B` | 分区边框与分隔线 |
+| `AppTextColor` | `#252620` / `#F0F0F2` | 主文字及标题栏前景 |
+| `AppSecondaryTextColor` | `#707268` / `#B0B0BA` | 路径、计数与说明 |
+| `AppAccentColor` | `#292E25` / `#C94B46` | 主按钮、选中指示、进度 |
+| `AppOnAccentColor` | `#FAFAF6` / `#FFFFFF` | 主按钮中的文字与图标 |
+| `AppAccentSubtleColor` | `#E1E3D8` / `#323237` | 选中导航和文件项 |
+| `AppSelectionHoverColor` | `#DADCD1` / `#3D3D44` | 选中项悬停/按下 |
 
 `AppAccentSecondaryColor` 和 `AppAccentTertiaryColor` 分别用于主操作悬停和按下；成功提示使用 `AppSuccessColor`。警告、错误、禁用和焦点沿用 Fluent 系统语义资源。
 
@@ -163,6 +162,8 @@ components:
 - 计划随输入/选择/参数变化自动失效并防抖刷新；不会自动执行转换。点击计划标题收起/展开内容，没有底部独立预览按钮。异常输入、同名输出、计划过期和实际执行校验继续由现有服务负责。
 
 ## 共享组件与边界
+
+2026-11-03：“复制与整理”沿用同一工作面与设置栏，目标、目录模式和同名策略依次排列；计划默认展开，选择一项显示完整来源与目标路径，并就地提供编号、跳过、覆盖确认。范围与开始/取消固定在栏底，结果和覆盖恢复使用折叠区。输入筛选保留隐藏勾选，复制范围同时显示已选与当前可见数量，并提供显式清除勾选。继续复用主题资源和公共 `SelectionDropDown`，未新增配色。实现与原生验收状态见 [复制与整理](docs/copy-organize.md)。下文旧阶段的复制占位状态由此更新取代。
 
 `ResizablePane` 提供主内容、右侧内容、收起后的内容、间距和最小主区宽度；拖动仍复用 `ResizeHandle`。`FileThumbnail` 只对实际生成的文件项请求本地预览，复用本地解码限制与缓存，失败保留文件类型图标。`FilePreviewView.PreviewHeight` 支持转换栏的紧凑预览，其余页面保留原高度。
 

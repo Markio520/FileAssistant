@@ -24,6 +24,7 @@ public partial class App : Application
     public static Features.Search.SearchViewModel Search { get; private set; } = null!;
     public static Core.Engines.IFileProcessingService FileProcessing { get; private set; } = null!;
     public static Features.Convert.ConversionViewModel Conversion { get; private set; } = null!;
+    public static Features.Organize.CopyViewModel Copy { get; private set; } = null!;
     public static Features.Outputs.OutputsViewModel Outputs { get; private set; } = null!;
     public static Features.Tasks.ProcessingJobsViewModel Jobs { get; private set; } = null!;
     public static Features.Settings.EnginesViewModel EngineSettings { get; private set; } = null!;
@@ -102,6 +103,7 @@ public partial class App : Application
             Infrastructure.Engines.EnginePaths.ExtensionsDirectory), Infrastructure.Engines.EnginePackageCatalog.Ffmpeg, Infrastructure.Engines.EnginePackageCatalog.LibreOffice);
         Jobs = new();
         Outputs = new(new Infrastructure.Windows.WindowsFileInteraction());
+        Copy = new(new Infrastructure.FileSystem.CopyService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FileAssistant", "CopyRecovery")), CopyInput, Outputs, Jobs);
         Conversion = new(FileProcessing, new(inputReader, Features.Workspace.WorkspaceInputPurpose.Conversion,
             new Infrastructure.Persistence.JsonFileCollectionStore(Path.Combine(collectionsDirectory, "conversion.json"))), Outputs, Jobs);
         EngineSettings.AvailabilityChanged += (_, _) => Conversion.RefreshCapabilities();
@@ -129,11 +131,15 @@ public partial class App : Application
             CopyInput.CancelLoadingCommand.Execute(null);
             Conversion.Input.CancelLoadingCommand.Execute(null);
             Conversion.CancelCommand.Execute(null);
+            Copy.CancelCommand.Execute(null);
             EngineSettings.CancelCommand.Execute(null);
             Window.AppWindow.Hide();
             try
             {
                 if (Conversion.RunCommand.ExecutionTask is { } processing) await processing;
+                if (Copy.RunCommand.ExecutionTask is { } copying) await copying;
+                if (Copy.BuildPlanCommand.ExecutionTask is { } scanning) await scanning;
+                await Copy.WaitForIdleAsync();
                 if (EngineSettings.DownloadVideoCommand.ExecutionTask is { } download) await download;
                 if (EngineSettings.DownloadOfficeCommand.ExecutionTask is { } officeDownload) await officeDownload;
                 await collectionsLoading;

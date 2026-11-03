@@ -2,7 +2,7 @@
 
 > 整理日期：2026-10-29  
 > 状态：基于 C# / .NET 10 / WinUI 3 的工程架构约定。  
-> 当前已建立三个源码项目，接入真实文件搜索、共享引用输入、真实预览和常用本地格式转换；复制与改名执行尚未实现。最新验证边界见开发交接。
+> 当前已建立三个源码项目，接入真实文件搜索、共享引用输入、真实预览、常用本地格式转换及批量复制整理；改名执行尚未实现。最新复制验证边界见 [复制与整理](copy-organize.md)，其他阶段见开发交接。
 > FileAssistant 是示例代码前缀，不代表产品名称已经确定。
 
 ## 1. 架构选择
@@ -97,6 +97,8 @@ FileAssistant/
 ```
 
 ### 目录职责补充
+
+- `Core/Features/Organize` 定义复制请求、不可变计划、路径映射、冲突与逐项结果，以及 `ICopyService` 外部边界。`Infrastructure/FileSystem/CopyScanner` 递归扫描并按文件身份去重；`CopyService` 执行校验、提交和重试，`WindowsCopyFile` 封装 CopyFile2 与持有句柄的重命名，`CopyRecoveryStore` 预写恢复清单并保护恢复条件。`App/Features/Organize` 管理自动预览、冲突决定及恢复入口，输入继续复用 `FileInputView`。公共任务支持自定义名称、可选字节进度及通用结果摘要，旧转换调用保留兼容；成功文件继续使用 `ProducedFile` 和现有输出区。
 
 - 下一阶段转换参数集中在 Core `ConversionSettings`，工作表、帧/页、音轨元数据进入 `ProcessingSource`，一对多输出在 `ConversionPlanner` 中展开，计划持有参数快照。`ConversionViewModel.Options` 管理适用控件、预设及参数失效，不调用引擎。Office 工作表目录从 XLSX/ODS 容器读取，XLS 用现有 LibreOffice 临时转 ODS 检查；逐表导出使用明确的过滤参数。动态 WebP 的 `WebpAnimationWriter` 只负责容器封装，像素编解码仍交给 Magick.NET，避免引入另一个图像引擎。
 

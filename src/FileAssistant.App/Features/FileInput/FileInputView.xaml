@@ -96,7 +96,7 @@
             <controls:ResizablePane x:Name="DetailsHost" PaneSpacing="20" MinimumContentWidth="536" AllowDrop="True" DragOver="Files_DragOver" Drop="Files_Drop">
                 <controls:ResizablePane.MainContent>
                     <Border Style="{StaticResource WorkspaceSurfaceStyle}">
-                        <Grid>
+                        <Grid x:Name="InputSurface" SizeChanged="InputSurface_SizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition x:Name="FoldersColumn" Width="176" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid x:Name="FolderSidebar" Padding="10,12">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -105,7 +105,8 @@
                                     <Button Grid.Column="1" Click="FolderUp_Click" Visibility="{x:Bind ViewModel.CanGoUp, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanGoUp, Mode=OneWay}" Style="{StaticResource WorkspaceIconButtonStyle}" AutomationProperties.Name="返回上一级软件文件夹" ToolTipService.ToolTip="返回上一级"><FontIcon Glyph="&#xE74A;" FontSize="14" /></Button>
                                     <Button Grid.Column="2" Style="{StaticResource WorkspaceIconButtonStyle}" Click="CollapseFolders_Click" AutomationProperties.Name="收起左侧栏" ToolTipService.ToolTip="收起左侧栏"><PathIcon Width="16" Height="16" Data="F0 M1,2 H15 V14 H1 Z M2,3 V13 H5 V3 Z M6,3 V13 H14 V3 Z" /></Button>
                                 </Grid>
-                                <Grid x:Name="FolderTreeArea" Grid.Row="1" Background="Transparent" ContextRequested="FolderTree_ContextRequested" AllowDrop="True" DragLeave="FolderTree_DragLeave">
+                                <Grid x:Name="FolderTreeArea" Grid.Row="1" Background="Transparent" ContextRequested="FolderTree_ContextRequested" AllowDrop="True"
+                                    DragEnter="FolderTree_DragOver" DragOver="FolderTree_DragOver" Drop="FolderTree_Drop" DragLeave="FolderTree_DragLeave">
                                     <TreeView x:Name="FolderTree" SelectionMode="Single" SelectionChanged="FolderTree_SelectionChanged"
                                         CanDragItems="True" CanReorderItems="False" AllowDrop="True"
                                         DragItemsStarting="FolderTree_DragItemsStarting" DragItemsCompleted="FolderTree_DragItemsCompleted"
@@ -259,6 +260,9 @@
                             </Border>
                         </controls:MarqueeSelection>
                             </Border>
+                            <controls:ResizeHandle x:Name="FoldersResizeHandle" Grid.Column="1" Width="12" HorizontalAlignment="Left" Margin="-6,0,0,0"
+                                ResizeRequested="Folders_ResizeRequested" AutomationProperties.Name="调整左侧文件夹栏宽度"
+                                ToolTipService.ToolTip="拖动或使用左右方向键调整文件夹栏宽度" />
                         </Grid>
                     </Border>
                 </controls:ResizablePane.MainContent>

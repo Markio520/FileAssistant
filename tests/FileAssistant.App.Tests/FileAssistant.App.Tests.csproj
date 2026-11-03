@@ -29,6 +29,7 @@
     <Compile Include="../../src/FileAssistant.App/Features/Outputs/OutputsViewModel.cs" Link="Sources/OutputsViewModel.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Outputs/OutputEntry.cs" Link="Sources/OutputEntry.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Tasks/ProcessingJob.cs" Link="Sources/ProcessingJob.cs" />
+    <Compile Include="../../src/FileAssistant.App/Features/Organize/CopyViewModel.cs" Link="Sources/CopyViewModel.cs" />
     <Compile Include="../../src/FileAssistant.App/Features/Tasks/ProcessingJobsViewModel.cs" Link="Sources/ProcessingJobsViewModel.cs" />
   </ItemGroup>
 </Project>

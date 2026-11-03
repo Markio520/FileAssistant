@@ -61,6 +61,44 @@ public sealed class FileCollectionWorkflowTests
         }
     }
 
+    [Theory]
+    [InlineData(WorkspaceInputPurpose.Staging)]
+    [InlineData(WorkspaceInputPurpose.Copy)]
+    [InlineData(WorkspaceInputPurpose.Conversion)]
+    public async Task Entering_a_dragged_folder_preserves_its_saved_parent_and_move_undo(WorkspaceInputPurpose purpose)
+    {
+        var store = new Store();
+        var vm = new WorkspaceViewModel(new Reader(), purpose, store);
+        await vm.LoadCollectionAsync();
+        var source = vm.CreateFolder("待整理", Guid.Empty);
+        var child = vm.CreateFolder("子目录", source);
+        var target = vm.CreateFolder("目标目录", Guid.Empty);
+        vm.EnterFolder(child); vm.AddSearchFiles([File("photo.png")]);
+        var entries = vm.CollectionSnapshot.Entries.ToArray();
+
+        vm.MoveItemsTo(vm.GetFolderItems([source]), target);
+        // These are the navigation calls made by TreeView.SelectionChanged after a drop.
+        foreach (var folder in new[] { source, target, child, Guid.Empty, source })
+        {
+            vm.EnterFolder(folder);
+            Assert.Equal(target, vm.FolderNavigation.Single(item => item.Id == source).ParentId);
+            Assert.Equal(source, vm.FolderNavigation.Single(item => item.Id == child).ParentId);
+            Assert.Equal(entries, vm.CollectionSnapshot.Entries);
+        }
+        Assert.Equal([Guid.Empty, target, source], vm.Breadcrumbs.Select(item => item.Id));
+        await vm.FlushCollectionAsync();
+        var restored = new WorkspaceViewModel(new Reader(), purpose, store);
+        await restored.LoadCollectionAsync();
+        Assert.Equal(source, restored.CurrentFolderId);
+        Assert.Equal(target, restored.FolderNavigation.Single(item => item.Id == source).ParentId);
+        Assert.Equal(entries, restored.CollectionSnapshot.Entries);
+
+        vm.UndoCommand.Execute(null);
+        Assert.Equal(Guid.Empty, vm.FolderNavigation.Single(item => item.Id == source).ParentId);
+        Assert.Equal(entries, vm.CollectionSnapshot.Entries);
+        await vm.FlushCollectionAsync();
+    }
+
     [Fact]
     public void Folder_navigation_keeps_parent_relationships_and_recursive_unique_counts_when_filtering()
     {

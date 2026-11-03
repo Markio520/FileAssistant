@@ -3,6 +3,7 @@
     xmlns:input="using:FileAssistant.App.Features.FileInput" xmlns:search="using:FileAssistant.App.Features.Search"
     xmlns:controls="using:FileAssistant.App.Controls" xmlns:convert="using:FileAssistant.App.Features.Convert"
     xmlns:outputs="using:FileAssistant.App.Features.Outputs" xmlns:settings="using:FileAssistant.App.Features.Settings"
+    xmlns:organize="using:FileAssistant.App.Features.Organize"
     xmlns:workspace="using:FileAssistant.App.Features.Workspace" Background="{ThemeResource WorkspaceBackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -38,7 +39,7 @@
         </Border>
         <Grid Grid.Row="1">
             <input:FileInputView x:Name="StagingPanel" ViewModel="{x:Bind ViewModel}" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
-            <input:FileInputView x:Name="CopyPanel" ViewModel="{x:Bind CopyViewModel}" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
+            <organize:CopyView x:Name="CopyPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <search:SearchView x:Name="SearchPanel" Visibility="Collapsed" WorkspaceRequested="Search_WorkspaceRequested" />
             <convert:ConversionView x:Name="ConversionPanel" Visibility="Collapsed" SearchRequested="Input_SearchRequested" FilesForCopyRequested="Input_FilesForCopyRequested" FilesForConversionRequested="Input_FilesForConversionRequested" />
             <outputs:OutputsView x:Name="OutputsPanel" Visibility="Collapsed" FilesForConversionRequested="Input_FilesForConversionRequested" FilesForCopyRequested="Input_FilesForCopyRequested" />

@@ -15,11 +15,17 @@ public partial class ProcessingJob(int id, string name, Action cancel) : Observa
     public ObservableCollection<string> Details { get; } = [];
     [RelayCommand(CanExecute = nameof(IsRunning))] private void Cancel() { if (IsRunning) { Status = "正在取消…"; cancel(); } }
     public void Update(ProcessingProgress value)
-    { if (IsRunning) { Progress = value.Total == 0 ? 0 : value.Completed * 100d / value.Total; Status = value.Message; } }
+    {
+        if (!IsRunning) return;
+        Progress = value.TotalBytes is > 0 ? Math.Min(99, value.BytesCompleted.GetValueOrDefault() * 100d / value.TotalBytes.Value)
+            : value.Total == 0 ? 0 : value.Completed * 100d / value.Total;
+        Status = value.Message + (value.BytesPerSecond is { } speed ? $"\n{value.Completed:N0}/{value.Total:N0} 项 · {Workspace.WorkspaceFile.FormatSize((long)speed)}/s" : "");
+    }
     public void Complete(ConversionReport report)
     {
-        IsRunning = false; Progress = report.Cancelled ? Progress : 100; Status = report.Summary;
-        foreach (var item in report.Items) Details.Add($"{item.Item.SourceLabel}：{item.Message}");
+        Complete(report.Summary, report.Items.Select(item => $"{item.Item.SourceLabel}：{item.Message}"), report.Cancelled);
     }
+    public void Complete(string summary, IEnumerable<string> details, bool interrupted)
+    { IsRunning = false; if (!interrupted) Progress = 100; Status = summary; foreach (var detail in details) Details.Add(detail); }
     public void Fail(string message) { IsRunning = false; Status = message; Details.Add(message); }
 }

@@ -21,6 +21,7 @@ public partial class WorkspaceViewModel : ObservableObject
     private CancellationTokenSource? importCancellation;
     private int importGeneration;
     private IReadOnlyList<WorkspaceFile> selectedFiles = [];
+    private HashSet<string> selectedKeys = new(StringComparer.OrdinalIgnoreCase);
 
     public WorkspaceViewModel(IFileInputReader? inputReader = null, bool isStaging = true)
         : this(inputReader, isStaging ? WorkspaceInputPurpose.Staging : WorkspaceInputPurpose.Copy) { }
@@ -53,15 +54,32 @@ public partial class WorkspaceViewModel : ObservableObject
     public ObservableCollection<WorkspaceFile> VisibleFiles { get; } = [];
     public IReadOnlyList<SearchFile> SearchEntries => collection.Resolve(Guid.Empty).Select(entry => entry.File).ToArray();
     public IReadOnlyList<SearchFile> SelectedEntries => collection.ResolveSelection(SelectedFolderIds, SelectedEntryIds).Select(entry => entry.File).ToArray();
+    public bool IsRefreshingFiles { get; private set; }
+    public IReadOnlyList<WorkspaceFile> SelectedRows => selectedFiles;
+    public int VisibleSelectedCount => VisibleFiles.Count(IsRowSelected);
+    public event EventHandler? VisibleFilesRefreshed;
+    public static string RowKey(WorkspaceFile row) => row.EntryId is { } entry ? "e:" + entry.ToString("N")
+        : row.FolderId is { } folder ? "f:" + folder.ToString("N") : "p:" + row.FullPath;
+    public bool IsRowSelected(WorkspaceFile row) => selectedKeys.Contains(RowKey(row));
+    public void SetVisibleSelection(IReadOnlyList<WorkspaceFile> selection, WorkspaceFile? current = null)
+    {
+        if (IsRefreshingFiles) return;
+        var visibleKeys = VisibleFiles.Select(RowKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hidden = selectedFiles.Where(x => !visibleKeys.Contains(RowKey(x)));
+        SetSelection(hidden.Concat(selection).ToArray(), current);
+    }
 
     public void SetSelection(IReadOnlyList<WorkspaceFile> selection, WorkspaceFile? current = null)
     {
         selectedFiles = selection.ToArray();
+        selectedKeys = selectedFiles.Select(RowKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
         SelectionCount = selectedFiles.Count;
         SelectedFile = current ?? selectedFiles.LastOrDefault();
         OnPropertyChanged(nameof(SelectedEntries));
         OnPropertyChanged(nameof(EffectiveEntries));
         OnPropertyChanged(nameof(CanRenameFolder));
+        OnPropertyChanged(nameof(SelectedRows));
+        OnPropertyChanged(nameof(VisibleSelectedCount));
     }
     public bool HasSamples => files.Any(f => f.IsSample);
     public string BatchOrigin => HasSamples ? "示例文件 · 不读取本地文件" : IsStaging ? "暂存引用 · 不改动原件" : "独立输入 · 不自动加入暂存区";
@@ -181,8 +199,8 @@ public partial class WorkspaceViewModel : ObservableObject
     public string PreviewGlyph => SelectedFile?.Glyph ?? "\uE8A5";
     public SearchFile? PreviewFile => SelectedFile?.ReferenceError is null ? SelectedFile?.Source : null;
 
-    partial void OnSearchTextChanged(string value) => ApplyFilters();
-    partial void OnFilterIndexChanged(int value) => ApplyFilters();
+    partial void OnSearchTextChanged(string value) => ApplyFilters(preserveSelection: true);
+    partial void OnFilterIndexChanged(int value) => ApplyFilters(preserveSelection: true);
 
     [RelayCommand]
     private async Task LoadSamplesAsync(string? mode, CancellationToken cancellationToken)
@@ -278,9 +296,10 @@ public partial class WorkspaceViewModel : ObservableObject
         CollectionChanged();
     }
 
-    private void ApplyFilters()
+    private void ApplyFilters(bool preserveSelection = false)
     {
-        SetSelection([]);
+        IsRefreshingFiles = true;
+        if (!preserveSelection) SetSelection([]);
         VisibleFiles.Clear();
         var query = SearchText.Trim();
         var typeFilter = SearchRules.Compile(new SearchRequest { Kind = (SearchKind)FilterIndex });
@@ -292,6 +311,9 @@ public partial class WorkspaceViewModel : ObservableObject
             VisibleFiles.Add(file);
         }
 
+        IsRefreshingFiles = false;
+        OnPropertyChanged(nameof(VisibleSelectedCount));
+        VisibleFilesRefreshed?.Invoke(this, EventArgs.Empty);
         NotifyFileState();
     }
 

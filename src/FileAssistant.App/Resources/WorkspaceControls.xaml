@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:FileAssistant.App.Controls">
     <SolidColorBrush x:Key="WorkspaceMarqueeFillBrush" Color="{ThemeResource AppAccentColor}" Opacity="0.12" />
     <Style x:Key="WorkspaceMarqueeStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource WorkspaceMarqueeFillBrush}" />
@@ -58,6 +59,7 @@
         <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="9" />
     </Style>
     <Style x:Key="WorkspaceFolderTreeItemStyle" TargetType="TreeViewItem">
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="0,0,6,0" /><Setter Property="Margin" Value="0,1" />
         <Setter Property="MinHeight" Value="30" /><Setter Property="MinWidth" Value="0" /><Setter Property="CornerRadius" Value="4" />
         <Setter Property="Foreground" Value="{ThemeResource WorkspaceTextBrush}" />
@@ -68,7 +70,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TreeViewItem">
-                    <Grid x:Name="ContentPresenterGrid" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                    <controls:DropTargetSurface x:Name="ContentPresenterGrid" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal" />
@@ -89,7 +91,7 @@
                             </Grid>
                             <ContentPresenter x:Name="ContentPresenter" Grid.Column="1" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="{TemplateBinding Padding}" />
                         </Grid>
-                    </Grid>
+                    </controls:DropTargetSurface>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

@@ -1,3 +1,4 @@
+using FileAssistant.App.Controls;
 using FileAssistant.App.Features.Workspace;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,8 +9,12 @@ using Windows.Foundation;
 
 namespace FileAssistant.App.Features.FileInput;
 
-public sealed partial class FileInputView
+public sealed partial class FileInputView : IDropTargetHandler
 {
+    void IDropTargetHandler.TargetDragOver(DependencyObject source, DragEventArgs args) => FolderTree_DragOver(source, args);
+    void IDropTargetHandler.TargetDrop(DependencyObject source, DragEventArgs args) => FolderTree_Drop(source, args);
+    void IDropTargetHandler.TargetDragLeave(DependencyObject source, DragEventArgs args) => ClearDropHighlight();
+
     private readonly Dictionary<Guid, TreeViewNode> folderNodes = [];
     private bool updatingFolderTree;
     private bool folderUpdateQueued;
@@ -98,12 +103,16 @@ public sealed partial class FileInputView
 
     private TreeViewItem? DropFolderContainer(DragEventArgs e)
     {
-        // Drag events can be retargeted to the surrounding grid by the native TreeView.
-        // Hit-test row bounds so dropping on a label, count, chevron or row padding has one destination.
+        // Include the row margins so the narrow gaps between rows do not briefly
+        // switch the destination to the root. Space below the last row stays root.
         var point = e.GetPosition(FolderTreeArea);
+        if (point.X < 0 || point.X >= FolderTreeArea.ActualWidth) return null;
         foreach (var node in folderNodes.Values)
-            if (FolderTree.ContainerFromNode(node) is TreeViewItem { IsLoaded: true } item &&
-                item.TransformToVisual(FolderTreeArea).TransformBounds(new Rect(0, 0, item.ActualWidth, item.ActualHeight)).Contains(point)) return item;
+        {
+            if (FolderTree.ContainerFromNode(node) is not TreeViewItem { IsLoaded: true } item) continue;
+            var bounds = item.TransformToVisual(FolderTreeArea).TransformBounds(new Rect(0, 0, item.ActualWidth, item.ActualHeight));
+            if (point.Y >= bounds.Top - item.Margin.Top && point.Y < bounds.Bottom + item.Margin.Bottom) return item;
+        }
         return null;
     }
 

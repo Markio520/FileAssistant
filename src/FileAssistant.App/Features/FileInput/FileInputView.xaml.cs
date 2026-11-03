@@ -43,8 +43,6 @@ public sealed partial class FileInputView : UserControl
         InitializeComponent();
         // Item containers handle selection gestures; navigation must also receive handled double taps.
         FileList.AddHandler(UIElement.DoubleTappedEvent, new DoubleTappedEventHandler(Files_DoubleTapped), handledEventsToo: true);
-        FolderTreeArea.AddHandler(UIElement.DragOverEvent, new DragEventHandler(FolderTree_DragOver), handledEventsToo: true);
-        FolderTreeArea.AddHandler(UIElement.DropEvent, new DragEventHandler(FolderTree_Drop), handledEventsToo: true);
         Loaded += (_, _) => { UpdateInspector(); AttachDisplayModel(); SetFileView(showTiles); };
         Unloaded += (_, _) => DetachDisplayModel();
         KeyDown += Input_KeyDown;
@@ -58,7 +56,7 @@ public sealed partial class FileInputView : UserControl
         Inspector.Visibility = custom ? Visibility.Collapsed : Visibility.Visible;
         OperationPresenter.Content = OperationContent;
         OperationPresenter.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
-        InspectorTitle.Text = custom ? "转换设置" : ViewModel.IsFunctionInput ? "复制设置" : "文件信息";
+        InspectorTitle.Text = ViewModel.Purpose == WorkspaceInputPurpose.Conversion ? "转换设置" : ViewModel.IsFunctionInput ? "复制设置" : "文件信息";
     }
 
     public void FocusQuery() => FilterSearch.FocusQuery();
@@ -199,8 +197,8 @@ public sealed partial class FileInputView : UserControl
     private void Files_MarqueeCommitted(object? sender, EventArgs e) => UpdateFileSelection(FileList.SelectedItems.OfType<WorkspaceFile>().LastOrDefault());
     private void UpdateFileSelection(WorkspaceFile? current = null)
     {
-        if (switchingView || ViewModel is null) return;
-        ViewModel.SetSelection(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray(),
+        if (switchingView || ViewModel is null || ViewModel.IsRefreshingFiles) return;
+        ViewModel.SetVisibleSelection(FileList.SelectedItems.OfType<WorkspaceFile>().ToArray(),
             current ?? FileList.SelectedItems.OfType<WorkspaceFile>().FirstOrDefault());
     }
     private async void Remove_Click(object sender, RoutedEventArgs e) => await RemoveSelectionAsync();

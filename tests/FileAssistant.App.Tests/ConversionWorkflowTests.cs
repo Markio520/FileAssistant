@@ -238,6 +238,8 @@ public sealed class ConversionWorkflowTests
         input.AddSearchFiles([new(@"C:\test\one.png", false, 1, null), new(@"C:\test\two.png", false, 1, null)]);
         input.SetSelection([input.VisibleFiles[0]]);
         input.SearchText = "one";
+        Assert.Single(input.SelectedEntries);
+        input.SetSelection([]);
         Assert.Empty(input.SelectedEntries);
         Assert.Contains("全部 2 项", vm.ScopeSummary);
         await vm.BuildPlanCommand.ExecuteAsync(null);

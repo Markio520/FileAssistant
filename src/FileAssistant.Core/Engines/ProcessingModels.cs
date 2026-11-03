@@ -27,7 +27,8 @@ public sealed record ConversionPlan(ConversionRequest Request, IReadOnlyList<Con
 }
 public sealed record ProducedFile(string FullPath, long Size, DateTimeOffset Modified, IReadOnlyList<string> SourcePaths);
 public sealed record ConversionItemResult(ConversionPlanItem Item, ProducedFile? Output, string Message);
-public sealed record ProcessingProgress(int Completed, int Total, string Message);
+public sealed record ProcessingProgress(int Completed, int Total, string Message,
+    long? BytesCompleted = null, long? TotalBytes = null, double? BytesPerSecond = null);
 public sealed record ConversionReport(IReadOnlyList<ConversionItemResult> Items, bool Cancelled)
 {
     public IReadOnlyList<ProducedFile> Outputs => Items.Where(item => item.Output is not null).Select(item => item.Output!).ToArray();
